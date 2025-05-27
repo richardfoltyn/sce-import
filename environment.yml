@@ -3,7 +3,7 @@ channels:
   - defaults
 dependencies:
   - python=3.12
-  - numpy=1.26
+  - numpy=2.1
   - pandas=2.2
   - matplotlib=3.9
   - openpyxl=3.1
