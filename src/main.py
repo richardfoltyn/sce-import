@@ -1,21 +1,24 @@
+import hashlib
+import logging
 import os.path
 
 import pandas as pd
 
 from SCE.importer import import_file
+from env import EnvConfig, env_setup
 
 
-def main():
+def md5sum(file_path):
+    hash_md5 = hashlib.md5()
+    with open(file_path, "rb") as f:
+        for chunk in iter(lambda: f.read(4096*4), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
 
-    userdir = os.path.expanduser('~')
-    # Folder where SCE microdata is located
-    datadir = os.path.join(userdir, 'data', 'SCE')
-    rundir = os.path.join(userdir, 'run', 'SCE')
-    logdir = os.path.join(rundir, 'logs')
-    resultdir = os.path.join(rundir, 'output')
 
-    for d in logdir, resultdir:
-        os.makedirs(d, exist_ok=True)
+def main(econf: EnvConfig):
+
+    logger = logging.getLogger('SCE')
 
     # File names are assumed to be those from the SCE website
     files = [
@@ -27,9 +30,20 @@ def main():
     df_all = []
 
     for file in files:
-        path = os.path.join(datadir, file)
+        path = os.path.join(econf.inputdir, file)
 
-        df = import_file(path)
+        hsh = md5sum(path)
+        fn_cache = os.path.join(econf.cachedir, hsh + ".pkl.xz")
+        if os.path.isfile(fn_cache):
+            logger.info(f'Reading cached file {fn_cache}')
+            df = pd.read_pickle(fn_cache)
+        else:
+            logger.info(f'Reading in {path}')
+            # Skip first line which contains the license terms
+            df = pd.read_excel(path, skiprows=1)
+            df.to_pickle(fn_cache)
+
+        df = import_file(df)
 
         df.append(df)
 
@@ -39,4 +53,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(env_setup())
