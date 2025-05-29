@@ -4,7 +4,7 @@ import os.path
 
 import pandas as pd
 
-from SCE.importer import import_file
+from SCE.importer import process_sce
 from env import EnvConfig, env_setup
 
 
@@ -43,7 +43,7 @@ def main(econf: EnvConfig):
             df = pd.read_excel(path, skiprows=1)
             df.to_pickle(fn_cache)
 
-        df = import_file(df)
+        df = process_sce(df)
 
         df.append(df)
 
