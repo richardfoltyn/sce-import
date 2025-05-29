@@ -105,17 +105,21 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     # --- Q1a: Inflation/deflation between 48-60 months from now ---
 
     if "Q1a" in df.columns:
-        varname = "Q1a_part2"
+        # Variable name changed in later surveys
+        varname = "Q1apart2"
+        src = "Q1a_part2" if "Q1a_part2" in df.columns else varname
         # Merge questions Q1a and Q1a_part2
-        df_new[varname] = df[varname]
+        df_new[varname] = df[src]
         # Check if sign needs to be flipped
-        deflation = df[varname] == 2
+        deflation = df["Q1a"] == 2
         flip_sign(df_new, varname, deflation)
 
         df_simple["infl_5y"] = df_new[varname]
 
         # Q9new2: inflation forecast bins, months 48-60 from interview.
         columns = [f"Q9new2_bin{i}" for i in range(1, 11)]
+        # These columns are missing in later surveys
+        columns = df.filter(items=columns, axis=1)
         df_new[columns] = df[columns]
 
     # --- Employment ---
@@ -210,7 +214,7 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     # Q25v2part2: percent increase/decrease in household income
     varname = "Q25v2part2"
     df_new[varname] = df[varname]
-    negative = df[varname] == 3
+    negative = df["Q25v2"] == 3
     flip_sign(df_new, varname, negative)
 
     df_simple["hh_income_change"] = df_new[varname]
@@ -222,7 +226,7 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     # Q26v2part2: percent increase/decrease in household spending
     varname = "Q26v2part2"
     df_new[varname] = df[varname]
-    negative = df[varname] == 3
+    negative = df["Q26v2"] == 3
     flip_sign(df_new, varname, negative)
 
     df_simple["hh_spending_change"] = df_new[varname]
@@ -234,7 +238,7 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     # Q27v2part2: percent increase/decrease in total taxes
     varname = "Q27v2part2"
     df_new[varname] = df[varname]
-    negative = df[varname] == 3
+    negative = df["Q27v2"] == 3
     flip_sign(df_new, varname, negative)
 
     df_simple["taxes_change"] = df_new[varname]
@@ -260,7 +264,7 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     # Q31v2part2: percent increase/decrease in house prices
     varname = "Q31v2part2"
     df_new[varname] = df[varname]
-    negative = df[varname] == 3
+    negative = df["Q31v2"] == 3
     flip_sign(df_new, varname, negative)
 
     df_simple["house_price_change"] = df[varname]
@@ -275,20 +279,22 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     # C2part2: percent increase/decrease in house prices
     varname = "C2part2"
     df_new[varname] = df[varname]
-    negative = df[varname] == 3
+    negative = df["C2"] == 3
     flip_sign(df_new, varname, negative)
 
     df_simple["house_price_change_3y"] = df_new[varname]
 
     # --- Government debt ---
 
-    # C2: nationwide house prices increase/decrease between 24 and 36 months from now?
+    # C3: US government debt increase/decrease?
     df_new["C3"] = df["C3"]
-    # C3part2: percent increase/decrease in house prices
+    # C3part2: percent increase/decrease in US government debt
     varname = "C3part2"
     df_new[varname] = df[varname]
-    negative = df[varname] == 3
+    negative = df["C3"] == 3
     flip_sign(df_new, varname, negative)
+
+    df_simple["govt_debt_change"] = df_new[varname]
 
     # Periodically create non-fragmented copies of DataFrames to avoid pandas warnings.
     df_new = df_new.copy()
@@ -397,14 +403,14 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     # Q37: How long working at current job? (categorical)
     df_new["Q37"] = df["Q37"]
 
-    # Q38: Married or living with partner?
+    # Q38: Initial question: Married or living with partner?
+    # NOTE: Will be updated for later waves below
     df_new["Q38"] = df["Q38"]
-    couple = df_new["Q38"].map({1: 1, 2: 0}, na_action="ignore")
-    df_simple["couple_init"] = tile_const(couple, varname_id, np.uint8)
 
     # HH2: Spouses employment situation?
-    if "HH2" in df.columns:
-        df_new["HH2"] = df["HH2"]
+    d = df.filter(regex=r"^HH2_[\d]+$", axis=1)
+    if d.shape[1] > 0:
+        df_new = pd.concat((df_new, d), axis=1)
 
     # Q39 and Q40 don't seem to be present in public data set
 
@@ -423,12 +429,8 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
 
     # Q45new: Number of other HH members (multiple variables for multiple categories)
     d = df.filter(regex="Q45new_.*", axis=1)
+    d = tile_const(d, varname_id, np.uint8)
     df_new = pd.concat((df_new, d), axis=1)
-
-    kids = df[["Q45new_2", "Q45new_3", "Q45new_3", "Q45new_4"]].sum(axis=1, min_count=4)
-    if kids.notna().all():
-        kids = kids.astype(int)
-    df_simple["num_kids"] = kids
 
     # Q45b: self-reported health
     df_new["Q45b"] = df["Q45b"]
@@ -439,9 +441,9 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
 
     # QRA1: Willingness to take financial risk
     if "QRA1" in df.columns:
-        df_new['QRA1'] = tile_const(df["QRA1"], varname_id, np.uint8)
+        df_new["QRA1"] = tile_const(df["QRA1"], varname_id, np.uint8)
 
-        df_simple["take_fin_risk"] = df_new['QRA1']
+        df_simple["take_fin_risk"] = df_new["QRA1"]
 
     # QRA2: Willingness to take risk in daily activities
     if "QRA2" in df.columns:
@@ -449,6 +451,55 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
 
     # Q47: Total pre-tax family income during the past 12 months
     df_new["Q47"] = df["Q47"]
-    df_simple["fam_income"] = df_new["Q47"]
+
+    # --- Questions to repeat respondents ---
+
+    # D1 (repeat respondents only): household changed?
+    df_new["D1"] = df["D1"]
+    hh_changed = df_new["D1"] == 1
+    df_simple["hh_changed"] = hh_changed.astype(np.uint8)
+
+    # D2new: Updated HH members
+    # Update the original variables in place instead of keep another set of variables
+    d = df.filter(regex="D2new_.*", axis=1)
+    columns = df.filter(regex="Q45new_.*", axis=1).columns.to_list()
+    df_new.loc[hh_changed, columns] = d.loc[hh_changed].to_numpy()
+
+    # Number of kids implied by HH composition
+    kids = df[["Q45new_2", "Q45new_3", "Q45new_3", "Q45new_4"]].sum(axis=1, min_count=4)
+    if kids.notna().all():
+        kids = kids.astype(int)
+    df_simple["num_kids"] = kids
+
+    # D3: moved to new primary residence since last interview?
+    df_new["D3"] = df["D3"]
+
+    # DSAME: Worked at same employer in last survey?
+    df_new["DSAME"] = df["DSAME"]
+    df_simple["same_employer"] = np.where(
+        df_new["DSAME"].notna(), df_new["DSAME"].isin((1, 2)), np.nan
+    )
+
+    # DQ38: Currently married or living with partner?
+    df_new["Q38"] = merge_if_na(df_new["Q38"], df["DQ38"])
+    couple = df_new["Q38"].map({1: 1, 2: 0}, na_action="ignore")
+    df_simple["couple"] = couple
+
+    # dHH2: Spouses employment situation?
+    d = df.filter(regex=r"^DHH2_[\d]+$", axis=1)
+    if d.shape[1] > 0:
+        for name, col in d.items():
+            # Remove leading "D"
+            dst = name[1:]
+            df_new[dst] = merge_if_na(df_new[dst], col)
+
+    if "HH_1" in df_new.columns:
+        df_simple["spouse_working"] = (
+            (df[["HH_1", "HH_2"]] == 1).any(axis=1).astype(np.uint8)
+        )
+
+    # D6: Current total pre-tax family income
+    df_new["Q47"] = merge_if_na(df_new["Q47"], df["D6"])
+    df_simple["hh_income"] = df_new["Q47"]
 
     return df_new, df_simple

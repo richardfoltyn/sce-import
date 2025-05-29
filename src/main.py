@@ -28,6 +28,7 @@ def main(econf: EnvConfig):
     ]
 
     df_all = []
+    df_simple_all = []
 
     for file in files:
         path = os.path.join(econf.inputdir, file)
@@ -43,11 +44,13 @@ def main(econf: EnvConfig):
             df = pd.read_excel(path, skiprows=1)
             df.to_pickle(fn_cache)
 
-        df = process_sce(df)
+        df, df_simple = process_sce(df)
 
-        df.append(df)
+        df_all.append(df)
+        df_simple_all.append(df_simple)
 
     df = pd.concat(df_all, axis=0)
+    df_simple = pd.concat(df_simple_all, axis=0)
 
 
 
