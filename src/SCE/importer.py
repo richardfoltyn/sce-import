@@ -87,7 +87,8 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     df_extract["infl_1y_bin_var"] = df["Q9_var"]
     df_extract["infl_1y_bin_median"] = df["Q9_cent50"]
     df_extract["infl_1y_bin_iqr"] = df["Q9_iqr"]
-    df_extract["infl_1y_bin_prob_defl"] = df["Q9_probdeflation"]
+    # Rescale to [0, 100] to be in line with all other prob responses
+    df_extract["infl_1y_bin_prob_defl"] = df["Q9_probdeflation"] * 100.0
 
     # --- Q9b: Inflation/deflation between 24-36 months from now ---
     # Merge questions Q9bv2 and Q9bv2part2
@@ -107,7 +108,8 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     df_extract["infl_3y_bin_var"] = df["Q9c_var"]
     df_extract["infl_3y_bin_median"] = df["Q9c_cent50"]
     df_extract["infl_3y_bin_iqr"] = df["Q9c_iqr"]
-    df_extract["infl_3y_bin_prob_defl"] = df["Q9c_probdeflation"]
+    # Rescale to [0, 100] to be in line with all other prob responses
+    df_extract["infl_3y_bin_prob_defl"] = df["Q9c_probdeflation"] * 100.0
 
     # --- Q1a: Inflation/deflation between 48-60 months from now ---
 
@@ -306,7 +308,7 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     df_full = df_full.copy()
     df_extract = df_extract.copy()
 
-    # --- Numerical literacy questions ---
+    # --- Numerical literacy questions (new respondents only) ---
 
     # QNUM1: Compute 50% discounted price from $300
     df_full["QNUM1"] = df["QNUM1"]
@@ -372,7 +374,7 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
         np.nan,
     )
 
-    # --- Demographic questions ---
+    # --- Demographic questions (new respondents only) ---
 
     # Q32: Current age (only asked of now respondents)
     df_full["Q32"] = tile_const(df["Q32"], VARNAME_ID, int)
