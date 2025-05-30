@@ -16,7 +16,7 @@ projname = "sce-import"
 homedir = expanduser("~")
 
 scriptdir = os.path.dirname(__file__)
-repodir = os.path.abspath(join(scriptdir, "..", ".."))
+repodir = os.path.abspath(join(scriptdir, ".."))
 
 inputdir = join(homedir, "data", "SCE")
 
