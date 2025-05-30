@@ -12,20 +12,20 @@ from env import EnvConfig, env_setup
 def md5sum(file_path):
     hash_md5 = hashlib.md5()
     with open(file_path, "rb") as f:
-        for chunk in iter(lambda: f.read(4096*4), b""):
+        for chunk in iter(lambda: f.read(4096 * 4), b""):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
 
 
 def main(econf: EnvConfig):
 
-    logger = logging.getLogger('SCE')
+    logger = logging.getLogger("SCE")
 
     # File names are assumed to be those from the SCE website
     files = [
-        'FRBNY-SCE-Public-Microdata-Complete-13-16.xlsx',
-        'FRBNY-SCE-Public-Microdata-Complete-17-19.xlsx',
-        'frbny-sce-public-microdata-latest.xlsx'
+        "FRBNY-SCE-Public-Microdata-Complete-13-16.xlsx",
+        "FRBNY-SCE-Public-Microdata-Complete-17-19.xlsx",
+        "frbny-sce-public-microdata-latest.xlsx",
     ]
 
     # --- Merge individual raw Excel files ---
@@ -42,10 +42,10 @@ def main(econf: EnvConfig):
         hsh = md5sum(path)
         fn_cache = os.path.join(econf.cachedir, hsh + ".pkl.xz")
         if os.path.isfile(fn_cache):
-            logger.info(f'Reading cached file {fn_cache}')
+            logger.info(f"Reading cached file {fn_cache}")
             df = pd.read_pickle(fn_cache)
         else:
-            logger.info(f'Reading in {path}')
+            logger.info(f"Reading in {path}")
             # Skip first line which contains the license terms
             df = pd.read_excel(path, skiprows=1)
             df.to_pickle(fn_cache)
@@ -58,7 +58,7 @@ def main(econf: EnvConfig):
     # --- Tabulate distribution of spell lengths ---
     df_obs = df_orig.groupby(VARNAME_ID).size().value_counts().sort_index()
     s = df_obs.to_string(header=True)
-    s = s.replace('\n', '\n\t')
+    s = s.replace("\n", "\n\t")
     logger.info(f"Distribution of spell lengths: \n\t{s}")
 
     df_full, df_extract = process_sce(df_orig)
@@ -76,21 +76,21 @@ def main(econf: EnvConfig):
 
     # --- Store results ---
 
-    fn = os.path.join(econf.datadir, "SCE_extract.pkl.xz")
+    fn = os.path.join(econf.datadir, "sce_extract.pkl.xz")
     logger.info(f"Saving SCE extract to {fn}")
     df_extract.to_pickle(fn, protocol=5)
 
-    fn = os.path.join(econf.datadir, "SCE_full.pkl.xz")
+    fn = os.path.join(econf.datadir, "sce_full.pkl.xz")
     logger.info(f"Saving full SCE data to {fn}")
     df_full.to_pickle(fn, protocol=5)
 
     # --- Export to Stata ---
 
-    fn = os.path.join(econf.datadir, "SCE_extract.dta")
+    fn = os.path.join(econf.datadir, "sce_extract.dta")
     logger.info(f"Saving SCE extract to {fn}")
     df_extract.to_stata(fn, convert_dates={"date": "td"}, version=118, write_index=True)
 
-    fn = os.path.join(econf.datadir, "SCE_full.dta")
+    fn = os.path.join(econf.datadir, "sce_full.dta")
     logger.info(f"Saving full SCE data to {fn}")
     df_full.to_stata(fn, convert_dates={"date": "td"}, version=118, write_index=True)
 

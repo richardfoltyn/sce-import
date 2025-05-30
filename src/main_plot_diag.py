@@ -4,6 +4,7 @@ Create diagnostic plots for SCE variables.
 Author: Richard Foltyn
 """
 
+import logging
 import os.path
 from typing import Optional
 
@@ -19,7 +20,7 @@ from env import env_setup, EnvConfig
 from pydynopt.plot.baseplots import hide_subplot
 
 # Variables to exclude from diagnostic plots
-VARLIST_EXCLUDE = ["userid", "wid"]
+VARLIST_EXCLUDE = ["userid", "wid", "date"]
 
 
 def plot_nobs_indiv(df: pd.DataFrame, style: Optional[AbstractStyle] = None, **kwargs):
@@ -81,7 +82,7 @@ def plot_nobs_indiv(df: pd.DataFrame, style: Optional[AbstractStyle] = None, **k
             transform=ax.transAxes,
             va="top",
             ha="left",
-            **style.text
+            **style.text,
         )
 
     # Collapse data by individual
@@ -127,7 +128,7 @@ def plot_nobs_wave(df: pd.DataFrame, style: Optional[AbstractStyle] = None, **kw
 
     # --- Plotting function ---
 
-    xvalues = df.groupby(VARNAME_WID)['date'].median()
+    xvalues = df.groupby(VARNAME_WID)["date"].median()
 
     def plot(ax, idx, data: pd.DataFrame):
         i, j = idx
@@ -158,7 +159,7 @@ def plot_nobs_wave(df: pd.DataFrame, style: Optional[AbstractStyle] = None, **kw
             transform=ax.transAxes,
             va="top",
             ha="left",
-            **style.text
+            **style.text,
         )
 
     # --- Plot number of non-missing values ---
@@ -178,7 +179,9 @@ def plot_nobs_wave(df: pd.DataFrame, style: Optional[AbstractStyle] = None, **kw
     plot_grid(plot, nrow, ncol, style=style, data=collapsed, **kw_plot)
 
 
-def plot_stats_wave(df: pd.DataFrame, style: Optional[AbstractStyle] = None, **kwargs):
+def plot_stats_wave(
+    df: pd.DataFrame, outliers=True, style: Optional[AbstractStyle] = None, **kwargs
+):
     """
     Plot descriptive statistics (mean, median, IQR) for each variable as a time
     series across survey waves.
@@ -186,10 +189,12 @@ def plot_stats_wave(df: pd.DataFrame, style: Optional[AbstractStyle] = None, **k
     Parameters
     ----------
     df : pd.DataFrame
+    outliers : bool
+        If false, drop extreme outliers which ruin the y-axis scale.
     style : AbstractStyle, optional
     """
 
-    df = df.reset_index()
+    logger = logging.getLogger("SCE")
 
     columns = [var for var in df.columns if var not in VARLIST_EXCLUDE]
     nvars = len(columns)
@@ -203,7 +208,7 @@ def plot_stats_wave(df: pd.DataFrame, style: Optional[AbstractStyle] = None, **k
         style.aspect = 1.3
         style.grid = False
 
-    xvalues = df.groupby(VARNAME_WID)['date'].median()
+    xvalues = df.groupby(VARNAME_WID)["date"].median()
 
     # --- Plotting function ---
 
@@ -279,15 +284,36 @@ def plot_stats_wave(df: pd.DataFrame, style: Optional[AbstractStyle] = None, **k
             transform=ax.transAxes,
             va="top",
             ha="left",
-            **style.text
+            **style.text,
         )
 
     # --- Plot mean and IQR ---
 
     groups = df.groupby(VARNAME_WID)
 
-    df_mean = groups[columns].mean()
     df_qntl = groups[columns].quantile([0.25, 0.5, 0.75])
+    if outliers:
+        df_mean = groups[columns].mean()
+    else:
+        # Eliminate extreme outliers outside of 100 * IQR
+        p25 = df_qntl.xs(0.75, level=1, axis=0)
+        p75 = df_qntl.xs(0.25, level=1, axis=0)
+        iqr = p25 - p75
+        # Impose min. IQR of 1 so that we ignore categoricals and responses where IQR
+        # is 0 because most respondents answer the same (e.g. numerical literacy).
+        iqr = np.fmax(iqr, 1.0)
+        df2 = df[columns].copy(deep=True)
+        iqr = iqr.reindex(df2.index, level=VARNAME_WID)
+        mask = (df2 > p75 + 100 * iqr) | (df2 < p25 - 100 * iqr)
+        drop = mask.sum(axis=0)
+        drop = drop[drop > 0].sort_values(ascending=False)
+        if drop.any():
+            s = drop.to_string().replace("\n", "\n\t")
+            logger.info(f"Dropping outliers: \n\t{s}")
+            df2[mask] = np.nan
+
+        df_mean = df2.groupby(VARNAME_WID).mean()
+
     data = (df_mean, df_qntl)
 
     kw_plot = {"sharex": True, "sharey": False, "xlabel": "Wave"}
@@ -304,20 +330,23 @@ def main(econf: EnvConfig):
     econf : env.EnvConfig
     """
 
-    fn = os.path.join(econf.datadir, "SCE_extract.pkl.xz")
+    fn = os.path.join(econf.datadir, "sce_extract.pkl.xz")
     df = pd.read_pickle(fn)
 
     # Plot histogram of individual obs.
-    fn = os.path.join(econf.graphdir, "SEC_indiv_obs.pdf")
+    fn = os.path.join(econf.graphdir, "sce_indiv_obs.pdf")
     plot_nobs_indiv(df, outfile=fn)
 
     # Plot timeseries of N. obs. by variable
-    fn = os.path.join(econf.graphdir, "SCE_nobs.pdf")
+    fn = os.path.join(econf.graphdir, "sce_nobs.pdf")
     plot_nobs_wave(df, outfile=fn)
 
     # Plot timeseries of descriptive statistic by variable
-    fn = os.path.join(econf.graphdir, "SCE_descriptive.pdf")
+    fn = os.path.join(econf.graphdir, "sce_descriptive.pdf")
     plot_stats_wave(df, outfile=fn)
+
+    fn = os.path.join(econf.graphdir, "sce_descriptive_no_outliers.pdf")
+    plot_stats_wave(df, outliers=False, outfile=fn)
 
 
 if __name__ == "__main__":

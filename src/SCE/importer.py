@@ -145,7 +145,9 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     # The questionaire does not specify the coding, assume 1 = work for someone else,
     # 2 = self-employed
     df_full["Q12new"] = df["Q12new"]
-    df_extract["self_employed"] = df_full["Q12new"].map({1:0, 2:1}, na_action="ignore")
+    df_extract["self_employed"] = df_full["Q12new"].map(
+        {1: 0, 2: 1}, na_action="ignore"
+    )
 
     # Q13new: change that R will lose main/current job
     df_full["Q13new"] = df["Q13new"]
@@ -559,9 +561,7 @@ def merge_inc_rank(
 
     # Merge total household income
     varname_rank = varname_inc_bin + "_rank"
-    df_ranks = df_ranks.rename(
-        columns={"rank": varname_rank, "ibin": varname_inc_bin}
-    )
+    df_ranks = df_ranks.rename(columns={"rank": varname_rank, "ibin": varname_inc_bin})
     index_names = df.index.names
     if index_names is not None:
         df = df.reset_index(drop=False)
