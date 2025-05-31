@@ -65,13 +65,13 @@ def main(econf: EnvConfig):
 
     # --- Merge HH income ranks from ACS ---
 
-    fn = os.path.join(econf.repodir, "data", "IPUMS_ftotinc_rank_by_year.csv")
+    fn = os.path.join(econf.repodir, "data", "IPUMS_ftotinc_rank_by_year_sce_bins.csv")
     df_ranks = pd.read_csv(fn)
 
     df_rank = merge_inc_rank(df_full, "Q47", df_ranks)
     df_full = pd.concat((df_full, df_rank), axis=1)
 
-    df_rank = merge_inc_rank(df_extract, "hh_inc", df_ranks)
+    df_rank = merge_inc_rank(df_extract, "hh_inc_bin", df_ranks)
     df_extract = pd.concat((df_extract, df_rank), axis=1)
 
     # --- Store results ---

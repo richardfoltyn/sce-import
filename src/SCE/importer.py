@@ -7,30 +7,42 @@ from SCE.constants import VARNAME_ID, VARNAME_WID
 from SCE.pandas_helpers import merge_if_na, tile_const, try_cast
 
 
-def flip_sign(df: pd.DataFrame, varname: str, negative: pd.Series) -> None:
+def flip_negative(s: pd.Series, negative: pd.Series) -> pd.Series:
     """
     Flip the sign of a variable if needed so that decreases are coded as
     negative numbers.
 
     Parameters
     ----------
-    df : pd.DataFrame
-    varname : str
+    s : pd.DataFrame
     negative : pd.Series
     """
 
+    s = s.copy(deep=True)
+
+    name = s.name
+    wrong_neg = (s.loc[negative] > 0).sum()
+    wrong_pos = (s.loc[~negative] < 0).sum()
+
     logger = logging.getLogger("SCE")
 
-    # Check if sign needs to be flipped
-    if (df.loc[negative, varname].fillna(0.0) <= 0).all():
+    if (wrong_neg == 0) and (wrong_pos == 0):
         # Sign is already correct
-        logger.info(f"Leaving sign in {varname} unchanged")
-    elif (df.loc[negative, varname].fillna(0.0) >= 0).all():
+        logger.info(f"Signs in {name} are correct, leaving unchanged")
+    elif (s.loc[negative].fillna(0.0) >= 0).all() and (wrong_pos == 0):
         # Sign needs to be flipped
-        logger.info(f"Flipping sign in {varname} to negative")
-        df.loc[negative, varname] *= -1
+        logger.info(f"Flipping sign in {name} to negative")
+        s.loc[negative] *= -1
     else:
-        logger.warning(f"{varname} has ambiguous sign")
+        logger.warning(f"{name} has ambiguous sign, leaving unchanged:")
+        if wrong_neg:
+            n = s.loc[negative].count()
+            logger.warning(f"  {wrong_neg:,d} (out of {n:,d}) wrong negative values")
+        if wrong_pos:
+            n = s.loc[~negative].count()
+            logger.warning(f"  {wrong_pos:,d} (out of {n:,d}) wrong positive values")
+
+    return s
 
 
 def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -73,9 +85,9 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     # Merge questions Q8v2 and Q8v2part2
     varname = "Q8v2part2"
     df_full[varname] = df[varname]
-    # Check if sign needs to be flipped
+    # Check that sign was flipped in Q8v2part2
     deflation = df["Q8v2"] == 2
-    flip_sign(df_full, varname, deflation)
+    df_full[varname] = flip_negative(df_full[varname], deflation)
 
     df_extract["infl_1y"] = df_full[varname]
 
@@ -96,7 +108,7 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     df_full[varname] = df[varname]
     # Check if sign needs to be flipped
     deflation = df["Q9bv2"] == 2
-    flip_sign(df_full, varname, deflation)
+    df_full[varname] = flip_negative(df_full[varname], deflation)
 
     df_extract["infl_3y"] = df_full[varname]
 
@@ -120,7 +132,7 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
         df_full[varname] = df[varname]
         # Check if sign needs to be flipped
         deflation = df["Q1a"] == 2
-        flip_sign(df_full, varname, deflation)
+        df_full[varname] = flip_negative(df_full[varname], deflation)
 
         df_extract["infl_5y"] = df_full[varname]
 
@@ -208,7 +220,7 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     varname = "Q23v2part2"
     df_full[varname] = df[varname]
     negative = df["Q23v2"] == 3
-    flip_sign(df_full, varname, negative)
+    df_full[varname] = flip_negative(df_full[varname], negative)
 
     df_extract["earnings_change"] = df_full[varname]
 
@@ -223,7 +235,7 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     varname = "Q25v2part2"
     df_full[varname] = df[varname]
     negative = df["Q25v2"] == 3
-    flip_sign(df_full, varname, negative)
+    df_full[varname] = flip_negative(df_full[varname], negative)
 
     df_extract["hh_inc_change"] = df_full[varname]
 
@@ -235,7 +247,7 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     varname = "Q26v2part2"
     df_full[varname] = df[varname]
     negative = df["Q26v2"] == 3
-    flip_sign(df_full, varname, negative)
+    df_full[varname] = flip_negative(df_full[varname], negative)
 
     df_extract["hh_spending_change"] = df_full[varname]
 
@@ -247,7 +259,7 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     varname = "Q27v2part2"
     df_full[varname] = df[varname]
     negative = df["Q27v2"] == 3
-    flip_sign(df_full, varname, negative)
+    df_full[varname] = flip_negative(df_full[varname], negative)
 
     df_extract["taxes_change"] = df_full[varname]
 
@@ -273,7 +285,7 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     varname = "Q31v2part2"
     df_full[varname] = df[varname]
     negative = df["Q31v2"] == 3
-    flip_sign(df_full, varname, negative)
+    df_full[varname] = flip_negative(df_full[varname], negative)
 
     df_extract["house_price_change"] = df[varname]
 
@@ -288,7 +300,7 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     varname = "C2part2"
     df_full[varname] = df[varname]
     negative = df["C2"] == 3
-    flip_sign(df_full, varname, negative)
+    df_full[varname] = flip_negative(df_full[varname], negative)
 
     df_extract["house_price_change_3y"] = df_full[varname]
 
@@ -300,7 +312,7 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     varname = "C3part2"
     df_full[varname] = df[varname]
     negative = df["C3"] == 3
-    flip_sign(df_full, varname, negative)
+    df_full[varname] = flip_negative(df_full[varname], negative)
 
     df_extract["govt_debt_change"] = df_full[varname]
 
@@ -515,9 +527,9 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
             (df[["HH_1", "HH_2"]] == 1).any(axis=1).astype(np.uint8)
         )
 
-    # D6: Current total pre-tax family income
+    # D6: Current total pre-tax family income (11 income bins)
     df_full["Q47"] = merge_if_na(df_full["Q47"], df["D6"])
-    df_extract["hh_inc"] = df_full["Q47"]
+    df_extract["hh_inc_bin"] = df_full["Q47"]
 
     df_full = df_full.sort_index()
     df_extract = df_extract.sort_index()

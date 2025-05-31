@@ -7,7 +7,7 @@ income distribution using the ACS data for the same survey years.
 
 
 //------------------------------------------------------------------------------
-// Directories and paths
+// Configuration
 
 if "${S_OS}" == "Unix" {
 	local home: environment HOME
@@ -18,16 +18,24 @@ else {
 
 global RUNDIR = "`home'/run/sce-import"
 global OUTDIR = "${RUNDIR}/stata/output"
+global LOGDIR = "${RUNDIR}/stata/logs"
 
 capture mkdir `"${RUNDIR}"'
 capture mkdir `"${RUNDIR}/stata"'
 capture mkdir `"${OUTDIR}"'
+capture mkdir `"${LOGDIR}"'
+
+local LOGNAME = "ftotinc_IPUMS"
+capture log close `LOGNAME'
+log using "${LOGDIR}/`LOGNAME'.log", text replace name(`LOGNAME')
+
 
 // Input data file
 global DATAFILE = "`home'/data/IPUMS/ACS/ftotinc_2008-2023.dta"
 
 // Family income bin edges used in SCE
 global FAM_INC_CUTS = "0 10000 20000 30000 40000 50000 60000 75000 100000 150000 200000 1e20"
+
 
 
 //------------------------------------------------------------------------------
@@ -61,7 +69,7 @@ by year (lbound): generate ibin = _n
 // Store as CSV
 order year ibin lbound rank 
 
-export delimited using `"${OUTDIR}/IPUMS_ftotinc_rank_by_year.csv"', ///
+export delimited using `"${OUTDIR}/IPUMS_ftotinc_rank_by_year_sce_bins.csv"', ///
     replace datafmt
 
     
@@ -114,7 +122,7 @@ by `cellvars' (lbound), sort: generate ibin = _n
 order `cellvars' ibin lbound rank 
 
 export delimited using ///
-    `"${OUTDIR}/IPUMS_ftotinc_rank_by_year_college_age`age_min'-`age_max'.csv"', ///
+    `"${OUTDIR}/IPUMS_ftotinc_rank_by_year_college_age`age_min'-`age_max'_sce_bins.csv"', ///
     replace datafmt
 
-
+log close `LOGNAME'

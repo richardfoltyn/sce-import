@@ -71,15 +71,23 @@ def try_cast(values: pd.Series | pd.DataFrame, dtype) -> pd.Series | pd.DataFram
             try:
                 values[name] = values[name].astype(dtype)
             except ValueError:
-                logger.warning(f"Failed to cast column {name} to {dtype_name}")
+                n = values[name].isna().sum()
+                logger.warning(
+                    f"Failed to cast column {name} to {dtype_name} due to {n:,d} NA values."
+                )
     else:
         try:
             values = values.astype(dtype)
         except ValueError:
+            n = values.isna().sum()
             name = getattr(values, "name", None)
             if name:
-                logger.warning(f"Failed to cast {name} to {dtype_name}")
+                logger.warning(
+                    f"Failed to cast {name} to {dtype_name} due to {n:,d} NA values."
+                )
             else:
-                logger.warning(f"Failed to cast {name} to {dtype_name}")
+                logger.warning(
+                    f"Failed to cast to {dtype_name} due to {n:,d} NA values."
+                )
 
     return values
