@@ -16,14 +16,18 @@ else {
 	local home: environment USERPROFILE
 }
 
+global DIAGNOSTICS = 1
+
 global RUNDIR = "`home'/run/sce-import"
 global OUTDIR = "${RUNDIR}/stata/output"
 global LOGDIR = "${RUNDIR}/stata/logs"
+global GRAPHDIR = "${RUNDIR}/stata/graphs"
 
 capture mkdir `"${RUNDIR}"'
 capture mkdir `"${RUNDIR}/stata"'
 capture mkdir `"${OUTDIR}"'
 capture mkdir `"${LOGDIR}"'
+capture mkdir `"${GRAPHDIR}"'
 
 local LOGNAME = "ftotinc_IPUMS"
 capture log close `LOGNAME'
@@ -84,13 +88,18 @@ export delimited using `"${OUTDIR}/IPUMS_ftotinc_rank_by_year_sce_bins.csv"', //
 local by_age = 0
 
 // Age range for "newborn" sample
-local age_min = 23
+local age_min = 18
 local age_max = 27
 
 use "${DATAFILE}", clear
 
+label variable year "Year"
+label variable age "Age"
+
 // Recode variables
 recode educ (0/9 = 0) (10/11 = 1), generate(college)
+label variable college "College"
+
 recode ftotinc (9999998/9999999 = .)
 
 tabulate educ [fw=perwt]
@@ -124,6 +133,50 @@ egen lbound = cut(ftotinc), at(${FAM_INC_CUTS})
 // for each bin
 collapse (median) rank (count) nobs=rank, by(`cellvars' lbound)
 
+// Create 1-based bin index without the lower bound label
+by `cellvars' (lbound), sort: generate ibin = _n
+label variable ibin "Family income bin"
+
+// --- Plot median rank by bin and year ---
+
+if ${DIAGNOSTICS} {
+    local byvar year
+    local bylbl: variable label `byvar'
+
+    forvalues college = 0/1 {
+
+        quietly levelsof `byvar' if college == `college', local(byvalues)
+
+        local graph_str = ""
+        local legend_str = ""
+        local i = 1
+        foreach value of local byvalues {
+            local graph_str `"`graph_str' (scatter rank ibin if `byvar' == `value' & college == `college', connect(l) msymbol(o) msize(medium))"'
+            local legend_str `"`legend_str' label(`i' "`byblb' `value'") "'
+            local ++i
+        }
+
+        quietly summarize ibin
+        local imax = r(max)
+
+        #delimit ;
+        twoway 
+            `graph_str',
+            ytitle("Rank")
+            xtitle("Family income bin")
+            title("Family income rank (ages `age_min'-`age_max')")
+            xlabel(1(1)`imax')
+            legend(`legend_str' position(6) rows(2))
+            ;
+        #delimit cr
+
+        graph export "${GRAPHDIR}/fam_inc_rank_by_year_college_ages`age_min'-`age_max'.pdf", replace
+    }
+}
+
+
+// --- Store CSV ---
+
 // Drop year/age/college cells with less than 1000 individuals since this is
 // more noise than data.
 by `cellvars', sort: egen nobs_cell = total(nobs)
@@ -135,9 +188,6 @@ format %5.3f rank
 
 drop if missing(lbound)
 sort `cellvars' lbound
-
-// Create 1-based bin index without the lower bound label
-by `cellvars' (lbound), sort: generate ibin = _n
 
 // Store as CSV
 order `cellvars' ibin lbound rank, first 
