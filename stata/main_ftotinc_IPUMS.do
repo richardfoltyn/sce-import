@@ -41,7 +41,6 @@ global DATAFILE = "`home'/data/IPUMS/ACS/ftotinc_2008-2023.dta"
 global FAM_INC_CUTS = "0 10000 20000 30000 40000 50000 60000 75000 100000 150000 200000 1e20"
 
 
-
 //------------------------------------------------------------------------------
 // Pooled median income ranks
 
@@ -76,6 +75,8 @@ by year (lbound): generate ibin = _n
 
 // Store as CSV
 order year ibin lbound rank 
+
+describe
 
 export delimited using `"${OUTDIR}/IPUMS_ftotinc_rank_by_year_sce_bins.csv"', ///
     replace datafmt
@@ -117,6 +118,8 @@ if `by_age' {
     local cellvars = "`cellvars' age"
 }
 
+drop if missing(ftotinc)
+
 // Generate person-level family income ranks within each survey year
 by `cellvars', sort: cumul ftotinc [fw=perwt], generate(rank)
 
@@ -130,12 +133,26 @@ replace ftotinc = max(0, ftotinc)
 egen lbound = cut(ftotinc), at(${FAM_INC_CUTS})
 
 // Compute median rank (within the family income distribution of each year)
-// for each bin
-collapse (median) rank (count) nobs=rank, by(`cellvars' lbound)
+// for each bin.
+// Generate nobs variable to be used with rawsum to get actual number of obs.
+// even when fweights are used.
+generate nobs = 1
+collapse (min) rank_min=rank (median) rank (rawsum) nobs (rawsum) mass=perwt ///
+    [fw=perwt], by(`cellvars' lbound)
+
+by `cellvars': egen mass_total = total(mass)
+replace mass = mass / mass_total
+drop mass_total
 
 // Create 1-based bin index without the lower bound label
 by `cellvars' (lbound), sort: generate ibin = _n
+
 label variable ibin "Family income bin"
+label variable mass "Frac of obs within `cellvars'"
+label variable rank "Median rank within income bin"
+label variable rank_min "Lowest rank within income bin" 
+label variable lbound "Bin lower bound (nominal USD)"
+label variable nobs "N. obs within bin"
 
 // --- Plot median rank by bin and year ---
 
@@ -184,13 +201,15 @@ by `cellvars', sort: egen nobs_cell = total(nobs)
 keep if nobs_cell >= 1000
 drop nobs_cell
 
-format %5.3f rank
+format %5.3f rank rank_min mass
 
 drop if missing(lbound)
 sort `cellvars' lbound
 
 // Store as CSV
-order `cellvars' ibin lbound rank, first 
+order `cellvars' ibin lbound rank rank_min, first 
+
+describe
 
 local suffix = cond(`by_age' == 1, "_age", "")
 
