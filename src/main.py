@@ -23,6 +23,7 @@ def process_data(
     df_orig: pd.DataFrame,
     df_ranks: Optional[pd.DataFrame] = None,
     final_date: Optional[datetime.date] = None,
+    decimals_percent: Optional[int] = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Precess SCE raw data and return a full data set and a reduced extract.
@@ -35,6 +36,9 @@ def process_data(
         Mapping of family income in USD to income ranks
     final_date : datetime.date, optional
         If not None, restrict sample to dates before and including this date.
+    decimals_percent : int, optional
+        If not None, round questions or statistics computed from question that are
+        answered in percent to this many digits.
 
     Returns
     -------
@@ -47,12 +51,11 @@ def process_data(
     logger = logging.getLogger("SCE")
 
     # Process raw data, create full data set and smaller extract
-    df_full, df_extract = process_sce(df_orig)
+    df_full, df_extract = process_sce(df_orig, decimals_percent=decimals_percent)
 
     # --- Merge HH income ranks from ACS ---
 
     if df_ranks is not None:
-
         df_rank = merge_inc_rank(df_full, "Q47", df_ranks)
         df_full = pd.concat((df_full, df_rank), axis=1)
 
@@ -127,9 +130,12 @@ def main(econf: EnvConfig):
     # The Fed NY silently updates the current file, so there is no way to get exactly
     # the same sample as earlier. Impose some terminal date to keep the sample period
     # the same.
-    final_date = pd.to_datetime("2024-10-01")
+    # final_date = pd.to_datetime("2024-10-01")
+    final_date = None
 
-    df_full, df_extract = process_data(df_orig, df_ranks, final_date)
+    df_full, df_extract = process_data(
+        df_orig, df_ranks, final_date, decimals_percent=2
+    )
 
     # --- Tabulate distribution of spell lengths ---
 
@@ -157,6 +163,18 @@ def main(econf: EnvConfig):
     fn = os.path.join(econf.datadir, "sce_full.dta")
     logger.info(f"Saving full SCE data to {fn}")
     df_full.to_stata(fn, convert_dates={"date": "td"}, version=118, write_index=True)
+
+    # --- Export to Excel ----
+
+    fn = os.path.join(econf.datadir, "sce_extract.xlsx")
+    logger.info(f"Saving SCE extract to {fn}")
+    df_extract.to_excel(fn, index=True, sheet_name="SCE")
+
+    # --- Export to CSV ---
+
+    fn = os.path.join(econf.datadir, "sce_extract.csv")
+    logger.info(f"Saving SCE extract to {fn}")
+    df_extract.to_csv(fn, index=True)
 
 
 if __name__ == "__main__":

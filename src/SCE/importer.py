@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -45,16 +46,37 @@ def flip_negative(s: pd.Series, negative: pd.Series) -> pd.Series:
     return s
 
 
-def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+def process_sce(
+    df: pd.DataFrame, decimals_percent: Optional[int] = None
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Process the SCE raw data and create a full dataset and a reduced extract.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+    decimals_percent : int, optional
+        If not None, round questions or statistics computed from question that are
+        answered in percent to this many digits.
+
+    Returns
+    -------
+
+    """
     logger = logging.getLogger("SCE")
 
     df = df.rename(columns={"date": VARNAME_WID, "survey_date": "date"})
     df = df.set_index([VARNAME_ID, VARNAME_WID]).sort_index()
 
     # meta-variables to be copied directly
-    columns = ["date", "tenure", "weight"]
+    columns = ["tenure", "weight"]
     df_full = df[columns].copy(deep=True)
     df_extract = df[columns].copy(deep=True)
+
+    # Convert datetimens[64] to simple dates as the time is always midnight
+    date = df["date"].values.astype("datetime64[D]")
+    df_full["date"] = date
+    df_extract["date"] = date
 
     # Financially better or worse off than 12 months ago?
     df_full["Q1"] = df["Q1"].fillna(-1).astype(np.int8)
@@ -102,6 +124,12 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     # Rescale to [0, 100] to be in line with all other prob responses
     df_extract["infl_1y_bin_prob_defl"] = df["Q9_probdeflation"] * 100.0
 
+    if decimals_percent is not None:
+        # Round to desired number of decimals
+        columns = list(df_extract.filter(regex="infl_1y_.*", axis=1).columns)
+        for col in columns:
+            df_extract[col] = df_extract[col].round(decimals_percent)
+
     # --- Q9b: Inflation/deflation between 24-36 months from now ---
     # Merge questions Q9bv2 and Q9bv2part2
     varname = "Q9bv2part2"
@@ -122,6 +150,12 @@ def process_sce(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     df_extract["infl_3y_bin_iqr"] = df["Q9c_iqr"]
     # Rescale to [0, 100] to be in line with all other prob responses
     df_extract["infl_3y_bin_prob_defl"] = df["Q9c_probdeflation"] * 100.0
+
+    if decimals_percent is not None:
+        # Round to desired number of decimals
+        columns = list(df_extract.filter(regex="infl_3y_.*", axis=1).columns)
+        for col in columns:
+            df_extract[col] = df_extract[col].round(decimals_percent)
 
     # --- Q1a: Inflation/deflation between 48-60 months from now ---
 
