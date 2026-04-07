@@ -7,6 +7,8 @@ import pandas as pd
 from SCE.constants import VARNAME_ID, VARNAME_WID
 from SCE.pandas_helpers import merge_if_na, tile_const, try_cast
 
+LOGGER_NAME = "SCE"
+
 
 def flip_negative(s: pd.Series, negative: pd.Series) -> pd.Series:
     """
@@ -25,7 +27,7 @@ def flip_negative(s: pd.Series, negative: pd.Series) -> pd.Series:
     wrong_neg = (s.loc[negative] > 0).sum()
     wrong_pos = (s.loc[~negative] < 0).sum()
 
-    logger = logging.getLogger("SCE")
+    logger = logging.getLogger(LOGGER_NAME)
 
     if (wrong_neg == 0) and (wrong_pos == 0):
         # Sign is already correct
@@ -63,7 +65,7 @@ def process_sce(
     -------
 
     """
-    logger = logging.getLogger("SCE")
+    logger = logging.getLogger(LOGGER_NAME)
 
     df = df.rename(columns={"date": VARNAME_WID, "survey_date": "date"})
     df = df.set_index([VARNAME_ID, VARNAME_WID]).sort_index()
@@ -301,7 +303,7 @@ def process_sce(
 
     # Q28: credit conditions compared to past 12 months
     df_full["Q28"] = df["Q28"]
-    df_extract["credit_cond_past12m"] = df_full["Q28"]
+    df_extract["credit_cond_past_12m"] = df_full["Q28"]
 
     # Q29: Credit conditions 12 months from now
     df_full["Q29"] = df["Q29"]
@@ -591,6 +593,14 @@ def merge_inc_rank(
     pd.Series
     """
 
+    logger = logging.getLogger(LOGGER_NAME)
+
+    logger.info("Merging income rank to income bins")
+
+    years_in_ranks = np.sort(df_ranks["year"].unique())
+    logger.info("  Income years available in ACS data: ")
+    logger.info(f"    {years_in_ranks}")
+
     df = df.copy()
     # Household income is reported as income over the last 12 months. Align at the
     # beginning of the month and check fraction of past 12 months in current year.
@@ -614,8 +624,25 @@ def merge_inc_rank(
     if index_names is not None:
         df = df.reset_index(drop=False)
 
+    df_ranks = df_ranks[["year", varname_inc_bin, varname_rank]].copy()
+
+    # Forward-fill missing income rank years
+    years_in_sce = np.sort(df["year"].unique())
+    years_missing = [year for year in years_in_sce if year not in years_in_ranks]
+    if years_missing:
+        logger.warning(f"Missing income rank for years: {years_missing}")
+        logger.critical("Forward-filling of missing years not implemented yet")
+        raise NotImplementedError()
+        # Fill forward data from previous year
+        df_ranks_orig = df_ranks.set_index(["year", varname_inc_bin]).sort_index()
+        bins = df_ranks_orig.index.get_level_values(varname_inc_bin).unique()
+        midx = pd.MultiIndex.from_product(
+            [years_missing, bins], names=["year", varname_inc_bin]
+        )
+        df_ranks_missing = df_ranks.reindex(midx, method="ffill", level=varname_inc_bin)
+
     df = df.merge(
-        df_ranks[["year", varname_inc_bin, varname_rank]],
+        df_ranks,
         how="left",
         on=["year", varname_inc_bin],
         validate="m:1",

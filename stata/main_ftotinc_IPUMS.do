@@ -35,7 +35,7 @@ log using "${LOGDIR}/`LOGNAME'.log", text replace name(`LOGNAME')
 
 
 // Input data file
-global DATAFILE = "`home'/data/IPUMS/ACS/ftotinc_2008-2023.dta"
+global DATAFILE = "`home'/data/IPUMS/ACS/ftotinc_2008-2024.dta"
 
 // Family income bin edges used in SCE
 global FAM_INC_CUTS = "0 10000 20000 30000 40000 50000 60000 75000 100000 150000 200000 1e20"

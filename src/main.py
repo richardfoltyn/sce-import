@@ -112,8 +112,8 @@ def main(econf: EnvConfig):
             df = pd.read_excel(path, skiprows=1)
             df.to_pickle(fn_cache)
 
-        logger.info(f"  Initial intervew date: {df['survey_date'].dt.date.min()}")
-        logger.info(f"  Final intervew date:   {df['survey_date'].dt.date.max()}")
+        logger.info(f"  Initial interview date: {df['survey_date'].dt.date.min()}")
+        logger.info(f"  Final interview date:   {df['survey_date'].dt.date.max()}")
 
         df_all.append(df)
 
