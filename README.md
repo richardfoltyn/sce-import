@@ -15,7 +15,9 @@
   to the formats selected via ``--formats``. Supported formats are
   Zstandard-compressed Pickle (``.pkl.zst``), Stata (``.dta``), Excel (``.xlsx``),
   and CSV (``.csv``). The default is ``pickle`` only; pass
-  ``--formats pickle,stata,excel,csv`` to write all formats.
+  ``--formats pickle,stata,excel,csv`` to write all formats. CSV exports round
+  percentage and percentile fields to two decimal places; other formats retain
+  full processed precision.
 - **Diagnostic Plotting**: Generates plots illustrating panel spell lengths, observation counts per survey wave, and longitudinal statistics (mean, median, IQR) for variables over waves.
 
 ## Requirements

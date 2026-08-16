@@ -418,11 +418,11 @@ interviews from July 2025 onward will make the normal import fail.
 
 ---
 
-## [ ] SCE-008 — Import five-year density summaries and apply percent rounding consistently
+## [x] SCE-008 — Import five-year density summaries and apply percent rounding consistently
 
 **Priority:** P1  
-**Files:** `src/SCE/importer.py` (inflation block around lines 129–201),
-`src/SCE/annotations.py`
+**Files:** `src/SCE/importer.py`, `src/SCE/annotations.py`, `src/main.py`,
+`tests/test_inflation_summaries.py`, `tests/test_export_formats.py`
 
 ### Problem
 
@@ -447,10 +447,9 @@ three-year, and 263 five-year point forecasts with more than two decimal places.
 1. Add five-year density summary fields to the full and extract outputs using
    naming parallel to the one- and three-year fields.
 2. Scale `Q9new2_probdeflation` from `[0, 1]` to `[0, 100]` consistently.
-3. Centralize horizon processing/rounding so 1y, 3y, and 5y point forecasts and
-   density statistics follow one rule in both outputs. When
-   `decimals_percent=N`, round the source-named fields in the full output and
-   their descriptive counterparts in the extract after any unit scaling.
+3. Keep processing lossless and move presentation rounding to the CSV export
+   boundary. Round probabilities and other quantities represented on a
+   percentage/percentile scale only in the temporary CSV frame.
 4. Preserve 25th/75th percentiles in full output if “full” is intended to retain
    source summaries; at minimum expose mean, variance, median, IQR, and
    deflation probability in the extract.
@@ -461,30 +460,33 @@ three-year, and 263 five-year point forecasts with more than two decimal places.
 - All seven available `Q9new2_*` source summaries are intentionally retained or
   transformed; none is silently ignored.
 - Five-year extract names parallel the 1y/3y naming scheme.
-- `decimals_percent=N` rounds every documented percent-valued point/statistic to
-  `N` places in both the full output and extract at all horizons.
-- Corresponding normalized point forecasts in the full output and extract agree
-  after rounding.
-- `decimals_percent=None` leaves source precision unchanged.
+- Processed full and extract outputs retain source precision, and corresponding
+  normalized point forecasts agree exactly.
+- The CSV export rounds inflation fields, probabilities on `[0, 100]`,
+  percentage changes, and ACS income ranks on `[0, 100]` to the configured
+  number of decimal places.
+- CSV preparation does not mutate the processed frame or round unrelated
+  measured quantities; Pickle, Stata, and Excel retain full precision.
 
 ### Completion notes
 
-- The seven available `Q9new2_*` summaries are stored in the full output under their original names, preserving the 25th and 75th percentiles.
-- Exposed five-year density fields in the extract using parallel names: `infl_5y_bin_mean`, `infl_5y_bin_var`, `infl_5y_bin_median`, `infl_5y_bin_iqr`, and `infl_5y_bin_prob_defl` (scaled to `[0, 100]` consistently).
-- Replaced separate rounding blocks with a centralized, regex-based rounding step that matches and rounds point forecasts and density statistics at 1y, 3y, and 5y horizons.
-- Added variable labels for all five new extract fields in `src/SCE/annotations.py`.
-- Verified changes with new in-memory unit tests in `tests/test_inflation_summaries.py` covering extraction, scaling, and rounding.
-
-### Remaining work
-
-- The centralized rounding step currently rounds only the extract. Apply the
-  same configured rounding to the corresponding full-output inflation fields.
-  With `decimals_percent=2`, the existing generated full/extract outputs differ
-  for 3,410 one-year, 2,733 three-year, and 263 five-year point forecasts.
+- The seven available `Q9new2_*` summaries are stored in the full output under
+  their original names, preserving the 25th and 75th percentiles.
+- Exposed five-year density fields in the extract using parallel names:
+  `infl_5y_bin_mean`, `infl_5y_bin_var`, `infl_5y_bin_median`,
+  `infl_5y_bin_iqr`, and `infl_5y_bin_prob_defl` (scaled to `[0, 100]`).
+- Removed rounding from the transformation API so full, extract, Pickle, Stata,
+  and Excel retain processed precision.
+- Added non-mutating CSV preparation that rounds `prob_*` and `infl_*` fields,
+  percentage changes, and `hh_inc_bin_rank`/`Q47_rank`, while leaving weights,
+  durations, and other measured quantities unchanged.
+- Added variable labels for all five new extract fields and focused fixtures for
+  extraction, scaling, source-precision preservation, full/extract equality,
+  and CSV-only rounding.
 
 ---
 
-## [ ] SCE-009 — Preserve conservative sign-convention detection and use normalized values in every extract
+## [x] SCE-009 — Preserve conservative sign-convention detection and use normalized values in every extract
 
 **Priority:** P2
 **Files:** `src/SCE/importer.py` (`flip_negative`, lines 21–63; sign-processing
@@ -530,8 +532,9 @@ future source would then produce inconsistent full and extract outputs.
    Leave a consistently signed Series unchanged; leave every value in a
    mixed/ambiguous Series unchanged.
 4. Make all extracts, including `house_price_change`, read from the processed
-   `df_full` Series, and apply configured rounding consistently to corresponding
-   full/extract fields so the stored values remain equal.
+   `df_full` Series. Keep the processed full and extract values unrounded so
+   corresponding point forecasts remain equal; CSV presentation rounding must
+   operate on a copy.
 5. Log the inferred convention and separate counts for observed direction,
    missing direction, and contradictory/mixed evidence without describing
    missing direction as an explicit positive-direction response.
@@ -546,8 +549,8 @@ future source would then produce inconsistent full and extract outputs.
 - Values with missing direction are preserved and are not counted as explicit
   non-decrease contradictions; the current `Q1apart2` data no longer produce the
   misleading warning.
-- Every corresponding full/extract point forecast is equal after sign
-  normalization and any configured rounding.
+- Every corresponding processed full/extract point forecast is equal after sign
+  normalization.
 - Focused fixtures cover signed, uniformly unsigned, mixed-convention, zero,
   missing value, and missing-direction input.
 
@@ -564,12 +567,8 @@ future source would then produce inconsistent full and extract outputs.
   contradiction warning.
 - `house_price_change` now reads from the normalized full Series. Regression
   fixtures verify conservative convention handling and full/extract equality.
-
-### Remaining work
-
-- Sign normalization itself is complete. Final equality for the inflation
-  full/extract pairs remains blocked by the extract-only rounding described in
-  SCE-008.
+- Processing now preserves full precision in both frames; CSV-only rounding is
+  applied to a copy and cannot alter their equality.
 
 ---
 

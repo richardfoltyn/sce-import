@@ -1,4 +1,4 @@
-"""Regression tests for inflation density summaries and centralized rounding."""
+"""Regression tests for inflation density summaries and source precision."""
 
 import pandas as pd
 import pytest
@@ -51,7 +51,7 @@ def test_inflation_summaries_extraction_and_scaling() -> None:
         }
     )
 
-    df_full, df_extract = _process_inflation(df, decimals_percent=None)
+    df_full, df_extract = _process_inflation(df)
 
     idx = (10001, 202401)
     assert df_extract.loc[idx, "infl_5y"] == -0.8
@@ -70,47 +70,34 @@ def test_inflation_summaries_extraction_and_scaling() -> None:
     assert df_full.loc[idx, "Q9new2_probdeflation"] == 0.15
 
 
-@pytest.mark.parametrize(
-    "decimals_percent,expected_1y,expected_1y_mean,expected_3y,expected_5y_prob",
-    [
-        (2, 2.54, 2.35, -1.54, 15.43),
-        (0, 3.0, 2.0, -2.0, 15.0),
-    ],
-)
-def test_centralized_rounding(
-    decimals_percent: int,
-    expected_1y: float,
-    expected_1y_mean: float,
-    expected_3y: float,
-    expected_5y_prob: float,
-) -> None:
-    """Rounding applies consistently across all inflation horizons."""
+def test_processing_preserves_precision_and_full_extract_equality() -> None:
+    """Processing remains lossless before presentation-specific CSV rounding."""
     df = _inflation_frame(
         {
             "Q8v2": 1,
             "Q8v2part2": 2.54321,
-            "Q9_mean": 2.3456,
-            "Q9_var": 1.2345,
             "Q9bv2": 2,
             "Q9bv2part2": 1.54321,
-            "Q9c_mean": 1.2345,
-            "Q9c_var": 0.8765,
             "Q1a": 2,
             "Q1apart2": 0.84321,
-            "Q9new2_cent25": 0.1,
-            "Q9new2_cent50": 0.5,
-            "Q9new2_cent75": 1.2,
-            "Q9new2_iqr": 1.1,
-            "Q9new2_mean": 0.6,
+            "Q9new2_mean": 0.61234,
             "Q9new2_probdeflation": 0.154321,
-            "Q9new2_var": 0.4,
         }
     )
 
-    _, df_extract = _process_inflation(df, decimals_percent)
+    df_full, df_extract = _process_inflation(df)
 
     idx = (10001, 202401)
-    assert df_extract.loc[idx, "infl_1y"] == expected_1y
-    assert df_extract.loc[idx, "infl_1y_bin_mean"] == expected_1y_mean
-    assert df_extract.loc[idx, "infl_3y"] == expected_3y
-    assert df_extract.loc[idx, "infl_5y_bin_prob_defl"] == expected_5y_prob
+    point_forecasts = (
+        ("Q8v2part2", "infl_1y", 2.54321),
+        ("Q9bv2part2", "infl_3y", -1.54321),
+        ("Q1apart2", "infl_5y", -0.84321),
+    )
+    for source, extract, expected in point_forecasts:
+        assert df_full.loc[idx, source] == expected
+        assert df_extract.loc[idx, extract] == expected
+
+    assert df_full.loc[idx, "Q9new2_mean"] == 0.61234
+    assert df_extract.loc[idx, "infl_5y_bin_mean"] == 0.61234
+    assert df_full.loc[idx, "Q9new2_probdeflation"] == 0.154321
+    assert df_extract.loc[idx, "infl_5y_bin_prob_defl"] == pytest.approx(15.4321)

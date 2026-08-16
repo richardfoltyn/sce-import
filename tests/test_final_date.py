@@ -64,7 +64,6 @@ def test_process_data_filters_before_income_rank_merge(
 
     def fake_process_sce(
         _df_orig: pd.DataFrame,
-        decimals_percent: int | None = None,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Return synthetic processed frames without loading raw SCE data."""
         return processed_full.copy(), processed_extract.copy()

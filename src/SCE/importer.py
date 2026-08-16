@@ -343,7 +343,6 @@ def _process_general_expectations(
 
 def _process_inflation(
     df: pd.DataFrame,
-    decimals_percent: int | None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Process inflation point forecasts and density summaries."""
     df_full = pd.DataFrame(index=df.index)
@@ -433,15 +432,6 @@ def _process_inflation(
         if "Q9new2_probdeflation" in df.columns:
             # Rescale probability from [0, 1] to [0, 100] consistently
             df_extract["infl_5y_bin_prob_defl"] = df["Q9new2_probdeflation"] * 100.0
-
-    # Centralized rounding for 1y, 3y, and 5y point forecasts and density statistics
-    if decimals_percent is not None:
-        # Match columns such as infl_1y, infl_1y_bin_mean, infl_3y, infl_5y_bin_var, etc.
-        round_cols = list(
-            df_extract.filter(regex=r"^infl_(1y|3y|5y)($|_)", axis=1).columns
-        )
-        for col in round_cols:
-            df_extract[col] = df_extract[col].round(decimals_percent)
 
     return df_full, df_extract
 
@@ -913,7 +903,6 @@ def _process_household_background(
 
 def process_sce(
     df: pd.DataFrame,
-    decimals_percent: int | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Process raw SCE data into the full and reduced extract datasets.
 
@@ -921,9 +910,6 @@ def process_sce(
     ----------
     df
         Raw SCE DataFrame.
-    decimals_percent
-        If not None, round percent-valued inflation questions and statistics to
-        this many digits.
 
     Returns
     -------
@@ -954,10 +940,7 @@ def process_sce(
     full_parts.append(df_full_general)
     extract_parts.append(df_extract_general)
 
-    df_full_inflation, df_extract_inflation = _process_inflation(
-        df,
-        decimals_percent,
-    )
+    df_full_inflation, df_extract_inflation = _process_inflation(df)
     full_parts.append(df_full_inflation)
     extract_parts.append(df_extract_inflation)
 

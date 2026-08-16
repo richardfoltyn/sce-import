@@ -21,6 +21,10 @@ from SCE.annotations import VALUE_LABELS, VARIABLE_LABELS
 from SCE.constants import VARNAME_ID
 from SCE.importer import merge_inc_rank, process_sce
 
+CSV_PERCENT_COLUMN_REGEX: str = (
+    r"^(?:prob_|infl_)|_change(?:_3y)?$|^(?:hh_inc_bin_rank|Q47_rank)$"
+)
+
 
 def md5sum(file_path: Path) -> str:
     """Compute the MD5 checksum of a file.
@@ -131,6 +135,36 @@ def apply_metadata(
     return df
 
 
+def prepare_csv_export(
+    df: pd.DataFrame,
+    *,
+    decimals_percent: int = 2,
+) -> pd.DataFrame:
+    """Prepare a rounded copy of processed SCE data for CSV export.
+
+    Only quantities represented as percentages or percentiles are rounded:
+    probabilities on ``[0, 100]``, inflation statistics, percentage changes,
+    and ACS income ranks on ``[0, 100]``. Other measured quantities retain
+    their processed precision.
+
+    Parameters
+    ----------
+    df
+        Processed SCE output to prepare.
+    decimals_percent
+        Number of decimal places retained for percentage-valued fields.
+
+    Returns
+    -------
+    pd.DataFrame
+        Copy of ``df`` with CSV presentation rounding applied.
+    """
+    result = df.copy(deep=True)
+    columns = result.filter(regex=CSV_PERCENT_COLUMN_REGEX, axis=1).columns
+    result[columns] = result[columns].round(decimals_percent)
+    return result
+
+
 def summarize_sample(df: pd.DataFrame, name: str) -> None:
     """Log sample summary statistics for a processed SCE dataset.
 
@@ -211,7 +245,6 @@ def process_data(
     df_orig: pd.DataFrame,
     df_ranks: pd.DataFrame | None = None,
     final_date: datetime.date | pd.Timestamp | None = None,
-    decimals_percent: int | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Process SCE raw data and return a full data set and a reduced extract.
@@ -225,9 +258,6 @@ def process_data(
     final_date
         If not None, restrict the sample to dates before and including this date.
         Time components are ignored.
-    decimals_percent
-        If not None, round questions or statistics computed from question that are
-        answered in percent to this many digits.
 
     Returns
     -------
@@ -237,7 +267,7 @@ def process_data(
         Processed extract data set.
     """
     # Process raw data, create full data set and smaller extract
-    df_full, df_extract = process_sce(df_orig, decimals_percent=decimals_percent)
+    df_full, df_extract = process_sce(df_orig)
 
     # Restrict both outputs before the ACS merge so a pinned sample cannot fail
     # because later, excluded survey months lack a corresponding rank year.
@@ -316,7 +346,6 @@ def main(econf: EnvConfig) -> None:
         df_orig,
         df_ranks,
         final_date=econf.final_date,
-        decimals_percent=2,
     )
 
     # Attach variable/value label metadata so both Pickle and Stata exports carry it.
@@ -390,7 +419,8 @@ def main(econf: EnvConfig) -> None:
     if "csv" in formats:
         fn = econf.datadir / "sce_extract.csv"
         logger.info(f"Saving SCE extract to {fn}")
-        df_extract.to_csv(fn, index=True)
+        df_csv = prepare_csv_export(df_extract, decimals_percent=2)
+        df_csv.to_csv(fn, index=True)
     else:
         logger.info("Skipped export format: csv")
 

@@ -2,9 +2,12 @@
 
 from argparse import ArgumentParser
 
+import pandas as pd
+from pandas.testing import assert_frame_equal
 import pytest
 
 from env import EXPORT_FORMATS, EnvConfig, parse_export_formats
+from main import prepare_csv_export
 
 # ---------------------------------------------------------------------------
 # CLI parsing
@@ -68,3 +71,35 @@ def test_cli_invalid_format_fails() -> None:
     EnvConfig.add_arguments(parser)
     with pytest.raises(SystemExit):
         parser.parse_args(["--formats", "pickle,json"])
+
+
+def test_prepare_csv_export_rounds_only_percentages_and_percentiles() -> None:
+    """CSV presentation rounding leaves unrelated values and input untouched."""
+    df = pd.DataFrame(
+        {
+            "prob_move_house": [12.3456, float("nan")],
+            "infl_1y": [2.3456, -1.2345],
+            "infl_5y_bin_prob_defl": [15.4321, 2.3456],
+            "earnings_change": [3.4567, -2.3456],
+            "house_price_change_3y": [4.5678, -3.4567],
+            "hh_inc_bin_rank": [63.4567, 81.2345],
+            "Q47_rank": [62.3456, 80.1234],
+            "weight": [0.123456, 0.654321],
+            "jobless_length": [1.23456, 7.65432],
+        }
+    )
+    original = df.copy(deep=True)
+
+    result = prepare_csv_export(df, decimals_percent=2)
+
+    assert result["prob_move_house"].tolist()[0] == 12.35
+    assert pd.isna(result["prob_move_house"].iloc[1])
+    assert result["infl_1y"].tolist() == [2.35, -1.23]
+    assert result["infl_5y_bin_prob_defl"].tolist() == [15.43, 2.35]
+    assert result["earnings_change"].tolist() == [3.46, -2.35]
+    assert result["house_price_change_3y"].tolist() == [4.57, -3.46]
+    assert result["hh_inc_bin_rank"].tolist() == [63.46, 81.23]
+    assert result["Q47_rank"].tolist() == [62.35, 80.12]
+    assert result["weight"].tolist() == original["weight"].tolist()
+    assert result["jobless_length"].tolist() == original["jobless_length"].tolist()
+    assert_frame_equal(df, original)

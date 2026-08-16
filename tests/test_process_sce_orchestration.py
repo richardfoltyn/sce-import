@@ -52,7 +52,7 @@ def test_process_sce_assembles_explicit_processing_blocks(
     )
     original = df_raw.copy(deep=True)
 
-    df_full, df_extract = importer.process_sce(df_raw, decimals_percent=2)
+    df_full, df_extract = importer.process_sce(df_raw)
 
     expected_full = [
         "tenure",
