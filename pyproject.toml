@@ -1,7 +1,93 @@
+[project]
+name = "sce-import"
+version = "0.1.0"
+requires-python = "==3.14.*"
+dependencies = [
+    "numpy>=2.5,<2.6",
+    "pandas>=3.0,<3.1",
+    "matplotlib>=3.11,<3.12",
+    "openpyxl>=3.1",
+]
+
+[tool.uv]
+package = false
+override-dependencies = [
+    "matplotlib>=3.11,<3.12",
+]
+
+[tool.uv.sources]
+pydynopt = { path = "../pydynopt", editable = true }
+
 [tool.ruff]
 line-length = 88
 indent-width = 4
-target-version = "py313"
+target-version = "py314"
+# Auto-apply safe fixes (for example, unused imports) when Ruff runs with linting.
+fix = true
 
 [tool.ruff.format]
 quote-style = "double"
+# Format Python snippets inside docstrings for consistent examples.
+docstring-code-format = true
+# Match docstring snippet wrapping to the configured line length policy.
+docstring-code-line-length = "dynamic"
+
+[tool.ruff.lint]
+# Keep explicit rules you already enabled.
+# F401: remove unused imports.
+# F541: drop f-prefix on strings without placeholders.
+# I: normalize and sort imports.
+# B: flake8-bugbear correctness and robustness checks.
+# C4: comprehension style simplifications.
+# SIM: simplify boolean/control-flow patterns.
+# UP: pyupgrade modernizations for Python 3.14.
+# RUF: Ruff-native consistency checks.
+# Docstring rules are intentionally not enabled.
+extend-select = ["F401", "F541", "I", "B", "C4", "SIM", "UP", "RUF"]
+allowed-confusables = ["–", "’"]
+
+[tool.ruff.lint.isort]
+# Normalize `import x as y, z as w` style for stable import diffs.
+combine-as-imports = true
+# Sort imports consistently inside each section.
+force-sort-within-sections = true
+
+[tool.ruff.lint.pydocstyle]
+# Ensure it understands you are using NumPy style format
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+# Allow package re-exports in `__init__` modules without F401 noise.
+"**/__init__.py" = ["F401"]
+
+[tool.pyright]
+typeCheckingMode = "standard"
+pythonVersion = "3.14"
+extraPaths = [
+    "src",
+    "../pydynopt/src",
+]
+reportUnusedCallResult = false
+reportAssignmentType = false
+reportAny = false
+reportExplicitAny = false
+
+[tool.ty.environment]
+extra-paths = [
+    "src",
+    "../pydynopt/src",
+]
+
+[dependency-groups]
+dev = [
+    "pandas-stubs>=3.0,<3.1",
+    "pytest>=9.1.1",
+    "pytest-xdist>=3.6.1",
+    "pydynopt",
+]
+
+[tool.pytest.ini_options]
+pythonpath = [
+    "src",
+    "../pydynopt/src",
+]
