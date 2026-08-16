@@ -256,50 +256,65 @@ def main(econf: EnvConfig) -> None:
 
     # --- Store results ---
 
-    # attrs (variable_labels, value_labels) survive the Pickle round-trip automatically.
-    fn = econf.datadir / "sce_extract.pkl.zst"
-    logger.info(f"Saving SCE extract to {fn}")
-    df_extract.to_pickle(fn, protocol=5)
+    formats = econf.formats
+    logger.info(f"Export formats selected: {', '.join(sorted(formats))}")
 
-    fn = econf.datadir / "sce_full.pkl.zst"
-    logger.info(f"Saving full SCE data to {fn}")
-    df_full.to_pickle(fn, protocol=5)
+    # attrs (variable_labels, value_labels) survive the Pickle round-trip automatically.
+    if "pickle" in formats:
+        fn = econf.datadir / "sce_extract.pkl.zst"
+        logger.info(f"Saving SCE extract to {fn}")
+        df_extract.to_pickle(fn, protocol=5)
+
+        fn = econf.datadir / "sce_full.pkl.zst"
+        logger.info(f"Saving full SCE data to {fn}")
+        df_full.to_pickle(fn, protocol=5)
+    else:
+        logger.info("Skipped export format: pickle")
 
     # --- Export to Stata ---
 
-    fn = econf.datadir / "sce_extract.dta"
-    logger.info(f"Saving SCE extract to {fn}")
-    df_extract.to_stata(
-        fn,
-        convert_dates={"date": "td"},
-        version=118,
-        write_index=True,
-        variable_labels=df_extract.attrs.get("variable_labels", {}),
-        value_labels=df_extract.attrs.get("value_labels", {}),
-    )
+    if "stata" in formats:
+        fn = econf.datadir / "sce_extract.dta"
+        logger.info(f"Saving SCE extract to {fn}")
+        df_extract.to_stata(
+            fn,
+            convert_dates={"date": "td"},
+            version=118,
+            write_index=True,
+            variable_labels=df_extract.attrs.get("variable_labels", {}),
+            value_labels=df_extract.attrs.get("value_labels", {}),
+        )
 
-    fn = econf.datadir / "sce_full.dta"
-    logger.info(f"Saving full SCE data to {fn}")
-    df_full.to_stata(
-        fn,
-        convert_dates={"date": "td"},
-        version=118,
-        write_index=True,
-        variable_labels=df_full.attrs.get("variable_labels", {}),
-        value_labels=df_full.attrs.get("value_labels", {}),
-    )
+        fn = econf.datadir / "sce_full.dta"
+        logger.info(f"Saving full SCE data to {fn}")
+        df_full.to_stata(
+            fn,
+            convert_dates={"date": "td"},
+            version=118,
+            write_index=True,
+            variable_labels=df_full.attrs.get("variable_labels", {}),
+            value_labels=df_full.attrs.get("value_labels", {}),
+        )
+    else:
+        logger.info("Skipped export format: stata")
 
-    # --- Export to Excel ----
+    # --- Export to Excel ---
 
-    fn = econf.datadir / "sce_extract.xlsx"
-    logger.info(f"Saving SCE extract to {fn}")
-    df_extract.to_excel(fn, index=True, sheet_name="SCE")
+    if "excel" in formats:
+        fn = econf.datadir / "sce_extract.xlsx"
+        logger.info(f"Saving SCE extract to {fn}")
+        df_extract.to_excel(fn, index=True, sheet_name="SCE")
+    else:
+        logger.info("Skipped export format: excel")
 
     # --- Export to CSV ---
 
-    fn = econf.datadir / "sce_extract.csv"
-    logger.info(f"Saving SCE extract to {fn}")
-    df_extract.to_csv(fn, index=True)
+    if "csv" in formats:
+        fn = econf.datadir / "sce_extract.csv"
+        logger.info(f"Saving SCE extract to {fn}")
+        df_extract.to_csv(fn, index=True)
+    else:
+        logger.info("Skipped export format: csv")
 
 
 if __name__ == "__main__":

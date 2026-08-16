@@ -381,6 +381,12 @@ def main(econf: EnvConfig) -> None:
         Parsed environment configuration.
     """
     fn = econf.datadir / "sce_extract.pkl.zst"
+    if not fn.is_file():
+        raise SystemExit(
+            f"Pickle output not found: {fn}\n"
+            "Re-run the importer with '--formats pickle' (or '--formats all') "
+            "to generate the required output."
+        )
     df: pd.DataFrame = pd.read_pickle(fn)
 
     # Plot histogram of individual obs.

@@ -11,7 +11,11 @@
 - **Raw Data Concatenation**: Merges multiple historical and latest raw Excel microdata files (e.g., `FRBNY-SCE-Public-Microdata-Complete-13-16.xlsx`, `FRBNY-SCE-Public-Microdata-Complete-17-19.xlsx`, and `frbny-sce-public-microdata-latest.xlsx`).
 - **Data Standardization**: Converts raw variables into standard representations, flips incorrect signs where decreases were coded as positive (e.g., in inflation/deflation rate responses), and maps categoricals.
 - **ACS Income Rank Integration**: Merges external household total income ranks computed from IPUMS ACS data.
-- **Multiple Export Formats**: Exports processed full datasets and reduced extracts to Zstandard-compressed Pickle (`.pkl.zst`), Stata (`.dta`), Excel (`.xlsx`), and CSV (`.csv`).
+- **Multiple Export Formats**: Exports processed full datasets and reduced extracts
+  to the formats selected via ``--formats``. Supported formats are
+  Zstandard-compressed Pickle (``.pkl.zst``), Stata (``.dta``), Excel (``.xlsx``),
+  and CSV (``.csv``). The default is ``pickle`` only; pass
+  ``--formats pickle,stata,excel(csv`` to write all formats.
 - **Diagnostic Plotting**: Generates plots illustrating panel spell lengths, observation counts per survey wave, and longitudinal statistics (mean, median, IQR) for variables over waves.
 
 ## Requirements
@@ -41,6 +45,9 @@ Optional CLI flags:
 - `--graph-dir <path>`: Directory for diagnostic plots (defaults to `<run-dir>/graphs`).
 - `--final-date YYYY-MM-DD`: Inclusive final survey date to retain. The default is
   unbounded.
+- `--formats fmt,fmt,...`: Comma-separated list of export formats to write.  Valid
+  values are `pickle`, `stata`, `excel`, `csv`.  The default is `pickle`.  Pickle
+  is always fastest; Excel export can take several minutes for large data sets.
 
 Because FRBNY updates the latest workbook in place, pass `--final-date` when a
 reproducible, date-pinned sample is required. For example:

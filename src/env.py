@@ -249,6 +249,38 @@ def parse_iso_date(value: str) -> datetime.date:
     return parsed
 
 
+# Supported export formats for --formats
+EXPORT_FORMATS = frozenset({"pickle", "stata", "excel", "csv"})
+
+
+def parse_export_formats(value: str) -> set[str]:
+    """Parse a comma-separated list of export format names.
+
+    Parameters
+    ----------
+    value
+        Comma-separated format string (e.g. ``"pickle,stata"``).
+
+    Returns
+    -------
+    set[str]
+        Set of validated format names.
+
+    Raises
+    ------
+    ArgumentTypeError
+        If any token is not a recognised format.
+    """
+    tokens = {t.strip().lower() for t in value.split(",") if t.strip()}
+    unknown = tokens - EXPORT_FORMATS
+    if unknown:
+        raise ArgumentTypeError(
+            f"unknown export format(s): {', '.join(sorted(unknown))!r}"
+            f" (valid: {', '.join(sorted(EXPORT_FORMATS))})"
+        )
+    return tokens
+
+
 class EnvConfig(Namespace):
     """
     Custom Namespace class used to hold parsed command-line arguments.
@@ -264,6 +296,7 @@ class EnvConfig(Namespace):
     logdir: Path
     cachedir: Path
     final_date: datetime.date | None
+    formats: set[str]
 
     def __init__(self) -> None:
         """
@@ -288,6 +321,7 @@ class EnvConfig(Namespace):
         self.logdir = Path()
         self.cachedir = Path()
         self.final_date = None
+        self.formats: set[str] = {"pickle"}
 
     def set_defaults(self) -> None:
         """
@@ -378,6 +412,16 @@ class EnvConfig(Namespace):
             type=parse_iso_date,
             metavar="YYYY-MM-DD",
             help="inclusive final survey date (default: unbounded)",
+        )
+        parser.add_argument(
+            "--formats",
+            type=parse_export_formats,
+            default={"pickle"},
+            metavar="fmt,fmt,...",
+            help=(
+                "comma-separated export formats: pickle, stata, excel, csv "
+                "(default: pickle)"
+            ),
         )
 
     @classmethod

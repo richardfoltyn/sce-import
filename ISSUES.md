@@ -937,7 +937,7 @@ second overwrites the first.
 
 ---
 
-## [ ] SCE-017 — Make expensive export formats selectable
+## [x] SCE-017 — Make expensive export formats selectable
 
 **Priority:** P2  
 **Files:** `src/main.py`, `src/env.py`, `README.md`
@@ -967,6 +967,23 @@ iteration unnecessarily slow.
 - Invalid format names fail during argument parsing.
 - Export selection is verified with a tiny DataFrame; validating this task does
   not require running the full SCE import.
+
+### Completion notes
+
+- Added `EXPORT_FORMATS` frozenset and `parse_export_formats()` to `env.py`.
+  The `--formats` CLI flag takes a comma-separated list (case-insensitive,
+  whitespace-tolerant) and validates each token at parse time; unknown names
+  raise `ArgumentTypeError`, so invalid values fail during argument parsing.
+- Default is `pickle` only, avoiding the expensive Excel export for routine
+  iteration.
+- Added `if` guards around each export block in `main()` so only selected
+  formats are written; skipped formats are logged.
+- `main_plot_diag.py` now checks for the pickle file before reading and emits
+  a clear `SystemExit` message suggesting `--formats pickle` if it is missing.
+- `README.md` documents the `--formats` flag and its default.
+- 10 unit tests in `tests/test_export_formats.py` cover CLI parsing (valid,
+  invalid, default, case-insensitive) on synthetic data; no raw SCE workbooks
+  or production exports are needed.
 
 ---
 
