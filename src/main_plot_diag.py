@@ -79,8 +79,9 @@ def plot_nobs_indiv(
 
         varname = columns[k]
 
-        # Histogram bins
-        bins = np.arange(nmax + 1)
+        # Histogram with half-integer edges so each integer count (0..nmax) gets
+        # its own bin; integer-edge bins would merge the last two categories.
+        bins = np.arange(-0.5, nmax + 1.5)
         x = data[varname].to_numpy()
         ax.hist(
             x,
@@ -107,9 +108,10 @@ def plot_nobs_indiv(
 
     kw_plot: dict[str, Any] = {
         "xlabel": "Nobs. per individual",
-        "xticks": np.arange(nmax + 1) + 0.5,
+        # Ticks centered on each integer; bin edges are at half-integers.
+        "xticks": np.arange(nmax + 1),
         "xticklabels": np.arange(nmax + 1),
-        "xlim": (-0.25, nmax + 0.75),
+        "xlim": (-0.75, nmax + 0.25),
         "sharex": True,
         "sharey": False,
         "legend": True,
@@ -338,16 +340,20 @@ def plot_stats_wave(
     if outliers:
         df_mean = groups[columns].mean()
     else:
-        # Eliminate extreme outliers outside of 100 * IQR
-        p25 = df_qntl.xs(0.75, level=1, axis=0)
-        p75 = df_qntl.xs(0.25, level=1, axis=0)
-        iqr = p25 - p75
+        # Eliminate extreme outliers outside of 100 * IQR.
+        # q1 is the 25th percentile, q3 is the 75th percentile.
+        q1 = df_qntl.xs(0.25, level=1, axis=0)
+        q3 = df_qntl.xs(0.75, level=1, axis=0)
+        iqr = q3 - q1
         # Impose min. IQR of 1 so that we ignore categoricals and responses where IQR
         # is 0 because most respondents answer the same (e.g. numerical literacy).
         iqr = iqr.clip(lower=1.0)
         df2 = df[columns].copy(deep=True)
         iqr = iqr.reindex(df2.index, level=VARNAME_WID)
-        mask = (df2 > p75 + 100 * iqr) | (df2 < p25 - 100 * iqr)
+        # Upper fence: q3 + 100*IQR; lower fence: q1 - 100*IQR.
+        # This allows almost no outliers to remain (100*IQR vs. the
+        # conventional 1.5*IQR) while keeping the y-axis readable.
+        mask = (df2 > q3 + 100 * iqr) | (df2 < q1 - 100 * iqr)
         drop = mask.sum(axis=0)
         drop = drop[drop > 0].sort_values(ascending=False)
         if drop.any():

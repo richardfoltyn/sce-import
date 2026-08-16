@@ -182,7 +182,7 @@ if ${DIAGNOSTICS} {
         local i = 1
         foreach value of local byvalues {
             local graph_str `"`graph_str' (scatter rank ibin if `byvar' == `value' & college == `college', connect(l) msymbol(o) msize(medium))"'
-            local legend_str `"`legend_str' label(`i' "`byblb' `value'") "'
+            local legend_str `"`legend_str' label(`i' "`bylbl' `value'") "'
             local ++i
         }
 
@@ -200,7 +200,7 @@ if ${DIAGNOSTICS} {
             ;
         #delimit cr
 
-        graph export "${GRAPHDIR}/fam_inc_rank_by_year_college_ages`age_min'-`age_max'.pdf", replace
+        graph export "${GRAPHDIR}/fam_inc_rank_by_year_college`college'_ages`age_min'-`age_max'.pdf", replace
     }
 }
 

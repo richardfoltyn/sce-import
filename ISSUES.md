@@ -770,7 +770,7 @@ specific codebook version. There are also unresolved domain inconsistencies:
 
 ---
 
-## [ ] SCE-014 — Repair and actually use variable/value metadata
+## [x] SCE-014 — Repair and actually use variable/value metadata
 
 **Priority:** P2  
 **Files:** `src/SCE/annotations.py`, `src/SCE/enums.py`, `src/main.py`,
@@ -806,6 +806,32 @@ and has the opposite meaning from the derived field.
 - No label key refers to a nonexistent output field.
 - Stata output exposes the intended variable/value labels on a small fixture.
 - Labels agree with coding direction and units (`[0, 1]` versus `[0, 100]`).
+
+### Completion notes
+
+- Fixed three stale `VARIABLE_LABELS` keys: `hh_income_change` →
+  `hh_inc_change`, `credit_cond_past12m` → `credit_cond_past_12m`, `hh_income`
+  → `hh_inc_bin`.
+- Added 18 missing labels: panel identifiers (`userid`, `wid`), `date`, all
+  1y/3y density summaries, `hh_inc_bin_rank`, and `Q47_rank`.
+- Corrected `hh_changed` label: fixed typo ("unchaged") and reversed semantic
+  direction to "HH changed since last survey" (the derived field is 1 when D1 = 2,
+  i.e. the household *did* change).
+- Added `VALUE_LABELS` to `annotations.py`, derived from existing enums and
+  verified questionnaire codings: `WellBeingEnum` (Q1/Q2), `INCOME_CATEGORIES`
+  (Q47/hh_inc_bin), `Educ4Enum` (educ), credit conditions and health from
+  questionnaire text (Q28/Q29, Q45b), and binary 0/1 labels for all indicator
+  fields.
+- Added `apply_metadata` to `main.py`: stores filtered variable/value label dicts
+  in `DataFrame.attrs` for Pickle consumers; both `to_stata` calls now receive
+  `variable_labels=` and `value_labels=` arguments.
+- Added `check_label_coverage` helper to `annotations.py` for drift detection.
+- Updated `README.md`: replaced the false "applies categorical enums" claim with
+  an accurate description of label attachment.
+- New `tests/test_variable_labels.py` covers: full extract coverage (no unlabeled,
+  no phantom keys), `hh_changed` direction/spelling, Stata roundtrip for variable
+  and value labels, and `apply_metadata` attrs population and non-mutation.
+- All 72 tests pass; `uv run ruff check` and `uv run ty check` both pass.
 
 ---
 
@@ -849,7 +875,7 @@ current example—and broad regexes can silently capture unintended future field
 
 ---
 
-## [ ] SCE-016 — Fix incorrect diagnostic histogram bins and outlier thresholds
+## [x] SCE-016 — Fix incorrect diagnostic histogram bins and outlier thresholds
 
 **Priority:** P2  
 **Files:** `src/main_plot_diag.py` (around lines 82–113 and 337–355),
@@ -894,6 +920,20 @@ second overwrites the first.
 - Outlier bounds use the correctly named quartiles.
 - Stata diagnostic outputs cannot overwrite each other.
 - Diagnostic fixes do not alter processed survey data.
+
+### Completion notes
+
+- Histogram bin edges now use half-integer boundaries (`np.arange(-0.5, nmax + 1.5)`)
+  so each integer count from 0 through `nmax` gets its own bin. Tick positions and
+  axis limits were updated to match.
+- The 25th and 75th percentile extractions in outlier filtering are now correctly
+  named (`q1` / 0.25 and `q3` / 0.75), and fences use `q1 - 100*IQR` / `q3 + 100*IQR`
+  as documented.
+- The Stata legend macro typo `byblb` was corrected to `bylbl`.
+- The college-loop graph export filename now includes the `college` iteration value
+  so the `college=1` output does not overwrite `college=0`.
+- No unit tests were added (the fixes are trivial, visible, and the plotting
+  functions are tightly coupled to the pydynopt `plot_grid` callback API).
 
 ---
 
