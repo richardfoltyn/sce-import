@@ -1,27 +1,41 @@
+"""
+Helper functions for working with pandas DataFrames and Series.
+
+- merge_if_na: Incrementally merge Series replacing missing values.
+- tile_const: Broadcast a constant value within groups across group observations.
+- try_cast: Attempt to cast variables to a target dtype, logging warnings on failure.
+
+Author: Richard Foltyn
+"""
+
 import logging
+from typing import Any
 
 import pandas as pd
 
 
-def merge_if_na(*data) -> pd.Series:
+def merge_if_na(*data: pd.Series | pd.DataFrame) -> pd.Series:
     """
-    Return the values in the first element of `data`, but incrementally replace any
-    missing values with non-missing values from remaining items in `data`.
+    Incrementally replace missing values.
+
+    Returns the values in the first element of `data`, but incrementally replaces
+    any missing values with non-missing values from remaining items in `data`.
 
     Parameters
     ----------
-    data : List of pd.Series or pd.DataFrame
+    *data
+        Positional pandas Series or DataFrames to merge.
 
     Returns
     -------
-    merged : pd.Series
+    pd.Series
+        The merged Series.
     """
+    df_data = pd.concat(data, axis=1)
 
-    data = pd.concat(data, axis=1)
+    merged = df_data.iloc[:, 0].copy(deep=True)
 
-    merged = data.iloc[:, 0].copy(deep=True)
-
-    for name, var in data.iloc[:, 1:].items():
+    for _name, var in df_data.iloc[:, 1:].items():
         mask = merged.isna() & var.notna()
         merged[mask] = var[mask]
 
@@ -29,24 +43,30 @@ def merge_if_na(*data) -> pd.Series:
 
 
 def tile_const(
-    values: pd.Series | pd.DataFrame, by: str, dtype=None
+    values: pd.Series | pd.DataFrame,
+    by: str,
+    dtype: Any = None,
 ) -> pd.Series | pd.DataFrame:
     """
-    Tile non-missing value that is required to be constant within groups
-    across all group observations.
+    Tile non-missing value that is required to be constant within groups.
+
+    Broadcasts the single non-NA value within each group across all group
+    observations.
 
     Parameters
     ----------
-    values : pd.Series
-    by : str
-        Index level
-    dtype :
+    values
+        The pandas Series or DataFrame to tile.
+    by
+        The name of the index level to group by.
+    dtype
+        The target data type to cast to, optional.
 
     Returns
     -------
-    pd.Series
+    pd.Series or pd.DataFrame
+        The tiled pandas Series or DataFrame.
     """
-
     index = values.index
     values = values.dropna()
 
@@ -60,8 +80,27 @@ def tile_const(
     return tiled
 
 
-def try_cast(values: pd.Series | pd.DataFrame, dtype) -> pd.Series | pd.DataFrame:
+def try_cast(
+    values: pd.Series | pd.DataFrame,
+    dtype: Any,
+) -> pd.Series | pd.DataFrame:
+    """
+    Attempt to cast columns/values to a target dtype.
 
+    Emits warnings if values cannot be cast due to NA values.
+
+    Parameters
+    ----------
+    values
+        The pandas Series or DataFrame to cast.
+    dtype
+        The target data type.
+
+    Returns
+    -------
+    pd.Series or pd.DataFrame
+        The cast pandas Series or DataFrame.
+    """
     logger = logging.getLogger("SCE")
 
     dtype_name = getattr(dtype, "__name__", dtype)

@@ -1,39 +1,49 @@
 """
 Create diagnostic plots for SCE variables.
 
+- Plots histogram of observations per individual.
+- Plots non-missing observations across survey waves.
+- Plots descriptive statistics (mean, median, IQR) for variables over waves.
+
 Author: Richard Foltyn
 """
 
 import logging
-import os.path
-from typing import Optional
+from typing import Any
 
-import numpy as np
-import pandas as pd
 from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
-
-from SCE.constants import VARNAME_ID, VARNAME_WID
-from pydynopt.plot import plot_grid, DefaultStyle, AbstractStyle
-
-from env import env_setup, EnvConfig
+import numpy as np
+import pandas as pd
+from pydynopt.plot import AbstractStyle, DefaultStyle, plot_grid
 from pydynopt.plot.baseplots import hide_subplot
 
+from env import EnvConfig
+from SCE.constants import VARNAME_ID, VARNAME_WID
+
 # Variables to exclude from diagnostic plots
-VARLIST_EXCLUDE = ["userid", "wid", "date"]
+VARLIST_EXCLUDE: list[str] = ["userid", "wid", "date"]
 
 
-def plot_nobs_indiv(df: pd.DataFrame, style: Optional[AbstractStyle] = None, **kwargs):
+def plot_nobs_indiv(
+    df: pd.DataFrame,
+    style: AbstractStyle | None = None,
+    **kwargs: Any,
+) -> None:
     """
-    Plot histogram of observations per individual for each variable to illustrate how
-    unbalanced the panel is.
+    Plot histogram of observations per individual for each variable.
+
+    Illustrates how unbalanced the panel is.
 
     Parameters
     ----------
-    df : pd.DataFrame
-    style : AbstractStyle, optional
+    df
+        The SCE DataFrame.
+    style
+        Plot style specification.
+    **kwargs
+        Additional options passed to `plot_grid`.
     """
-
     df = df.reset_index()
 
     columns = [var for var in df.columns if var not in VARLIST_EXCLUDE]
@@ -51,7 +61,14 @@ def plot_nobs_indiv(df: pd.DataFrame, style: Optional[AbstractStyle] = None, **k
 
     # --- Plotting function ---
 
-    def plot(ax, idx, data):
+    def plot(
+        ax: Any,
+        idx: tuple[int, int],
+        data: pd.DataFrame | None = None,
+        **kwargs: Any,
+    ) -> None:
+        if data is None:
+            return
         i, j = idx
 
         k = i * ncol + j
@@ -88,7 +105,7 @@ def plot_nobs_indiv(df: pd.DataFrame, style: Optional[AbstractStyle] = None, **k
     # Collapse data by individual
     df_nobs = df.groupby([VARNAME_ID]).count()
 
-    kw_plot = {
+    kw_plot: dict[str, Any] = {
         "xlabel": "Nobs. per individual",
         "xticks": np.arange(nmax + 1) + 0.5,
         "xticklabels": np.arange(nmax + 1),
@@ -103,16 +120,23 @@ def plot_nobs_indiv(df: pd.DataFrame, style: Optional[AbstractStyle] = None, **k
     plot_grid(plot, nrow, ncol, style=style, data=df_nobs, **kw_plot)
 
 
-def plot_nobs_wave(df: pd.DataFrame, style: Optional[AbstractStyle] = None, **kwargs):
+def plot_nobs_wave(
+    df: pd.DataFrame,
+    style: AbstractStyle | None = None,
+    **kwargs: Any,
+) -> None:
     """
     Plot the number of non-missing observations for each variable by wave.
 
     Parameters
     ----------
-    df : pd.DataFrame
-    style : AbstractStyle, optional
+    df
+        The SCE DataFrame.
+    style
+        Plot style specification.
+    **kwargs
+        Additional options passed to `plot_grid`.
     """
-
     df = df.reset_index()
 
     columns = [var for var in df.columns if var not in VARLIST_EXCLUDE]
@@ -130,7 +154,14 @@ def plot_nobs_wave(df: pd.DataFrame, style: Optional[AbstractStyle] = None, **kw
 
     xvalues = df.groupby(VARNAME_WID)["date"].median()
 
-    def plot(ax, idx, data: pd.DataFrame):
+    def plot(
+        ax: Any,
+        idx: tuple[int, int],
+        data: pd.DataFrame | None = None,
+        **kwargs: Any,
+    ) -> None:
+        if data is None:
+            return
         i, j = idx
 
         k = i * ncol + j
@@ -167,7 +198,7 @@ def plot_nobs_wave(df: pd.DataFrame, style: Optional[AbstractStyle] = None, **kw
     # Collapse data
     collapsed = df.groupby(VARNAME_WID).count()
 
-    kw_plot = {
+    kw_plot: dict[str, Any] = {
         "sharex": True,
         "sharey": False,
         "xlabel": "Wave",
@@ -180,20 +211,25 @@ def plot_nobs_wave(df: pd.DataFrame, style: Optional[AbstractStyle] = None, **kw
 
 
 def plot_stats_wave(
-    df: pd.DataFrame, outliers=True, style: Optional[AbstractStyle] = None, **kwargs
-):
+    df: pd.DataFrame,
+    outliers: bool = True,
+    style: AbstractStyle | None = None,
+    **kwargs: Any,
+) -> None:
     """
-    Plot descriptive statistics (mean, median, IQR) for each variable as a time
-    series across survey waves.
+    Plot descriptive statistics (mean, median, IQR) for each variable by wave.
 
     Parameters
     ----------
-    df : pd.DataFrame
-    outliers : bool
+    df
+        The SCE DataFrame.
+    outliers
         If false, drop extreme outliers which ruin the y-axis scale.
-    style : AbstractStyle, optional
+    style
+        Plot style specification.
+    **kwargs
+        Additional options passed to `plot_grid`.
     """
-
     logger = logging.getLogger("SCE")
 
     columns = [var for var in df.columns if var not in VARLIST_EXCLUDE]
@@ -212,13 +248,20 @@ def plot_stats_wave(
 
     # --- Plotting function ---
 
-    def plot(ax, idx, data: pd.DataFrame):
+    def plot(
+        ax: Any,
+        idx: tuple[int, int],
+        data: tuple[pd.DataFrame, pd.DataFrame] | None = None,
+        **kwargs: Any,
+    ) -> None:
+        if data is None:
+            return
         i, j = idx
 
         k = i * ncol + j
 
-        kw_line = {"lw": 1.0, "color": "steelblue"}
-        kw_mean = {
+        kw_line: dict[str, Any] = {"lw": 1.0, "color": "steelblue"}
+        kw_mean: dict[str, Any] = {
             "lw": 0.75,
             "color": "black",
             "alpha": 0.7,
@@ -291,7 +334,7 @@ def plot_stats_wave(
 
     groups = df.groupby(VARNAME_WID)
 
-    df_qntl = groups[columns].quantile([0.25, 0.5, 0.75])
+    df_qntl = groups[columns].quantile(np.array([0.25, 0.5, 0.75]))
     if outliers:
         df_mean = groups[columns].mean()
     else:
@@ -301,7 +344,7 @@ def plot_stats_wave(
         iqr = p25 - p75
         # Impose min. IQR of 1 so that we ignore categoricals and responses where IQR
         # is 0 because most respondents answer the same (e.g. numerical literacy).
-        iqr = np.fmax(iqr, 1.0)
+        iqr = iqr.clip(lower=1.0)
         df2 = df[columns].copy(deep=True)
         iqr = iqr.reindex(df2.index, level=VARNAME_WID)
         mask = (df2 > p75 + 100 * iqr) | (df2 < p25 - 100 * iqr)
@@ -316,38 +359,39 @@ def plot_stats_wave(
 
     data = (df_mean, df_qntl)
 
-    kw_plot = {"sharex": True, "sharey": False, "xlabel": "Wave"}
+    kw_plot: dict[str, Any] = {"sharex": True, "sharey": False, "xlabel": "Wave"}
     kw_plot.update(**kwargs)
 
     plot_grid(plot, nrow, ncol, style=style, data=data, **kw_plot)
 
 
-def main(econf: EnvConfig):
+def main(econf: EnvConfig) -> None:
     """
+    Generate and save diagnostic plots.
 
     Parameters
     ----------
-    econf : env.EnvConfig
+    econf
+        Parsed environment configuration.
     """
-
-    fn = os.path.join(econf.datadir, "sce_extract.pkl.xz")
-    df = pd.read_pickle(fn)
+    fn = econf.datadir / "sce_extract.pkl.zstd"
+    df: pd.DataFrame = pd.read_pickle(fn)
 
     # Plot histogram of individual obs.
-    fn = os.path.join(econf.graphdir, "sce_indiv_obs.pdf")
+    fn = econf.graphdir / "sce_indiv_obs.pdf"
     plot_nobs_indiv(df, outfile=fn)
 
     # Plot timeseries of N. obs. by variable
-    fn = os.path.join(econf.graphdir, "sce_nobs.pdf")
+    fn = econf.graphdir / "sce_nobs.pdf"
     plot_nobs_wave(df, outfile=fn)
 
     # Plot timeseries of descriptive statistic by variable
-    fn = os.path.join(econf.graphdir, "sce_descriptive.pdf")
+    fn = econf.graphdir / "sce_descriptive.pdf"
     plot_stats_wave(df, outfile=fn)
 
-    fn = os.path.join(econf.graphdir, "sce_descriptive_no_outliers.pdf")
+    fn = econf.graphdir / "sce_descriptive_no_outliers.pdf"
     plot_stats_wave(df, outliers=False, outfile=fn)
 
 
 if __name__ == "__main__":
-    main(env_setup())
+    main(EnvConfig.setup())

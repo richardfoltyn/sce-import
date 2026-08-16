@@ -1,3 +1,10 @@
+"""
+Constant identifiers for the survey data variables.
 
-VARNAME_ID = "userid"
-VARNAME_WID = "wid"
+- Define identifiers for userid and wave id.
+
+Author: Richard Foltyn
+"""
+
+VARNAME_ID: str = "userid"
+VARNAME_WID: str = "wid"

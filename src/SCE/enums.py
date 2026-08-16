@@ -1,8 +1,23 @@
+"""
+Enumerations for SCE survey categorical variables.
+
+- WellBeingEnum: Financial well-being compared to past/future.
+- EmplStatusEnum: Employment status options.
+- EmplTypeEnum: Self-employed versus working for someone else.
+- EducationEnum: High-resolution educational attainment.
+- Educ4Enum: Coarse educational attainment.
+- INCOME_CATEGORIES: Map income category codes to descriptions.
+
+Author: Richard Foltyn
+"""
+
 from enum import IntEnum
 
-import pandas as pd
 
 class WellBeingEnum(IntEnum):
+    """
+    Categorical response for financial well-being.
+    """
 
     NA = -1
     MUCH_WORSE = 1
@@ -12,15 +27,22 @@ class WellBeingEnum(IntEnum):
     MUCH_BETTER = 5
 
     def __str__(self) -> str:
+        """
+        Return the string description of financial well-being.
 
+        Returns
+        -------
+        str
+            Description of the well-being state.
+        """
         cls = type(self)
         mapping = {
-            cls.NA: 'NA',
-            cls.MUCH_WORSE: 'Much worse off',
-            cls.SOMEWHAT_WORSE: 'Somewhat worse off',
-            cls.SAME: 'About the same',
-            cls.SOMEWHAT_BETTER: 'Somewhat better off',
-            cls.MUCH_BETTER: 'Much better off'
+            cls.NA: "NA",
+            cls.MUCH_WORSE: "Much worse off",
+            cls.SOMEWHAT_WORSE: "Somewhat worse off",
+            cls.SAME: "About the same",
+            cls.SOMEWHAT_BETTER: "Somewhat better off",
+            cls.MUCH_BETTER: "Much better off",
         }
 
         return mapping[self]
@@ -43,6 +65,14 @@ class EmplStatusEnum(IntEnum):
     OTHER = 10
 
     def __str__(self) -> str:
+        """
+        Return the string description of employment status.
+
+        Returns
+        -------
+        str
+            Description of the employment status.
+        """
         cls = type(self)
         mapping = {
             cls.FULL_TIME: "Working full-time (for someone or self-employed)",
@@ -54,7 +84,7 @@ class EmplStatusEnum(IntEnum):
             cls.RETIRED: "Retiree or early retiree",
             cls.STUDENT: "Student, at school or in training",
             cls.HOMEMAKER: "Homemaker",
-            cls.OTHER: "Other"
+            cls.OTHER: "Other",
         }
         return mapping[self]
 
@@ -68,11 +98,18 @@ class EmplTypeEnum(IntEnum):
     SELF_EMPLOYED = 2
 
     def __str__(self) -> str:
+        """
+        Return the string description of employment type.
 
+        Returns
+        -------
+        str
+            Description of employment type.
+        """
         cls = type(self)
         mapping = {
             cls.FOR_SOMEONE_ELSE: "Work for someone else",
-            cls.SELF_EMPLOYED: "Self-employed"
+            cls.SELF_EMPLOYED: "Self-employed",
         }
         return mapping[self]
 
@@ -81,6 +118,7 @@ class EducationEnum(IntEnum):
     """
     Represents different levels of educational attainment.
     """
+
     LT_HS = 1
     HS = 2
     SOME_COLLEGE = 3
@@ -93,24 +131,37 @@ class EducationEnum(IntEnum):
 
     def __str__(self) -> str:
         """
-        Returns the full string description of the education level.
+        Return the full string description of the education level.
+
+        Returns
+        -------
+        str
+            Description of the education level.
         """
-        
         cls = type(self)
-        
+
         mapping = {
             cls.LT_HS: "Less than high school",
             cls.HS: "High school diploma (or equivalent)",
-            cls.SOME_COLLEGE: "Some college but no degree (including academic, vocational, or occupational programs)",
-            cls.ASSOCIATE_DEGREE: "Associate/Junior College degree (including academic, vocational, or occupational programs)",
+            cls.SOME_COLLEGE: (
+                "Some college but no degree (including academic, vocational, or "
+                "occupational programs)"
+            ),
+            cls.ASSOCIATE_DEGREE: (
+                "Associate/Junior College degree (including academic, vocational, or "
+                "occupational programs)"
+            ),
             cls.BACHELORS_DEGREE: "Bachelor’s Degree (For example: BA, BS)",
-            cls.MASTERS_DEGREE: "Master’s Degree (For example: MA, MBA, MS, MSW)",
+            cls.MASTERS_DEGREE: (
+                "Master’s Degree (For example: MA, MBA, MS, MSW)"
+            ),
             cls.DOCTORAL_DEGREE: "Doctoral Degree (For example: PhD)",
-            cls.PROFESSIONAL_DEGREE: "Professional Degree (For example: MD, JD, DDS)",
-            cls.OTHER: "Other"
+            cls.PROFESSIONAL_DEGREE: (
+                "Professional Degree (For example: MD, JD, DDS)"
+            ),
+            cls.OTHER: "Other",
         }
         return mapping[self]
-
 
 
 class Educ4Enum(IntEnum):
@@ -121,15 +172,19 @@ class Educ4Enum(IntEnum):
     LT_HS = 1
     HS = 2
     SOME_COLLEGE = 3
-    COLLEGE = 4 
+    COLLEGE = 4
 
     def __str__(self) -> str:
         """
-        Returns the full string description of the coarse education level.
+        Return the full string description of the coarse education level.
+
+        Returns
+        -------
+        str
+            Description of the coarse education level.
         """
-        
         cls = type(self)
-        
+
         # Dictionary mapping enum members to their full descriptions
         mapping = {
             cls.LT_HS: "Less than high school",
@@ -141,7 +196,7 @@ class Educ4Enum(IntEnum):
 
 
 # Total pre-tax family income categories
-INCOME_CATEGORIES = {
+INCOME_CATEGORIES: dict[int, str] = {
     1: "Less than $10,000",
     2: "$10,000 to $19,999",
     3: "$20,000 to $29,999",
@@ -152,5 +207,5 @@ INCOME_CATEGORIES = {
     8: "$75,000 to $99,999",
     9: "$100,000 to $149,999",
     10: "$150,000 to $199,999",
-    11: "$200,000 or more"
+    11: "$200,000 or more",
 }

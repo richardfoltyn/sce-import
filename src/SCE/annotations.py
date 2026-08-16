@@ -1,4 +1,14 @@
-VARIABLE_LABELS_ORIG = {
+"""
+Variable labels mappings for original and processed SCE survey variables.
+
+- VARIABLE_LABELS_ORIG: Raw/original question labels.
+- VARIABLE_LABELS: Modern/clean question labels.
+
+Author: Richard Foltyn
+"""
+
+
+VARIABLE_LABELS_ORIG: dict[str, str] = {
     "tenure": "Tenure on survey",
     "weight": "Sampling weight",
     "Q1": "Financially better/worse off than 12 months ago",
@@ -92,10 +102,10 @@ VARIABLE_LABELS_ORIG = {
     "dHH2": "Partner's employment status",
     "D6": "Total HH income during past 12 months",
     "Q48": "How interesting did you find this survey?",
-    "Q49": "Do you have any other comments about the survey?"
+    "Q49": "Do you have any other comments about the survey?",
 }
 
-VARIABLE_LABELS = {
+VARIABLE_LABELS: dict[str, str] = {
     "tenure": "Tenure on survey",
     "weight": "Sampling weight",
     "financial_past_12m": "Financially better/worse off than 12 months ago",
@@ -156,5 +166,5 @@ VARIABLE_LABELS = {
     "hh_changed": "HH unchaged from last survey",
     "same_employer": "Same job as last survey?",
     "couple": "Married/living with partner?",
-    "spouse_working": "Spouse/partner currently working?"
+    "spouse_working": "Spouse/partner currently working?",
 }

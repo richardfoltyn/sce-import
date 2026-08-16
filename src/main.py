@@ -1,19 +1,42 @@
+"""
+Main module to import and process SCE microdata.
+
+- Concatenates multiple raw Excel datasets.
+- Processes demographic and question variables.
+- Merges external family income ranks.
+- Exports the final processed datasets to Pickle, Stata, Excel, and CSV.
+
+Author: Richard Foltyn
+"""
+
 import datetime
 import hashlib
 import logging
-import os.path
-from typing import Optional
+from pathlib import Path
 
 import pandas as pd
 
+from env import EnvConfig, add_logfile
 from SCE.constants import VARNAME_ID
 from SCE.importer import merge_inc_rank, process_sce
-from env import EnvConfig, env_setup
 
 
-def md5sum(file_path):
+def md5sum(file_path: Path) -> str:
+    """
+    Compute the MD5 checksum of a file.
+
+    Parameters
+    ----------
+    file_path
+        Path to the file to check.
+
+    Returns
+    -------
+    str
+        The MD5 checksum hex string.
+    """
     hash_md5 = hashlib.md5()
-    with open(file_path, "rb") as f:
+    with file_path.open("rb") as f:
         for chunk in iter(lambda: f.read(4096 * 4), b""):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
@@ -21,33 +44,32 @@ def md5sum(file_path):
 
 def process_data(
     df_orig: pd.DataFrame,
-    df_ranks: Optional[pd.DataFrame] = None,
-    final_date: Optional[datetime.date] = None,
-    decimals_percent: Optional[int] = None,
+    df_ranks: pd.DataFrame | None = None,
+    final_date: datetime.date | None = None,
+    decimals_percent: int | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Precess SCE raw data and return a full data set and a reduced extract.
+    Process SCE raw data and return a full data set and a reduced extract.
 
     Parameters
     ----------
-    df_orig : pd.DataFrame
+    df_orig
         Original SCE data, concatenated into single DataFrame.
-    df_ranks : pd.DataFrame, optional
-        Mapping of family income in USD to income ranks
-    final_date : datetime.date, optional
+    df_ranks
+        Mapping of family income in USD to income ranks.
+    final_date
         If not None, restrict sample to dates before and including this date.
-    decimals_percent : int, optional
+    decimals_percent
         If not None, round questions or statistics computed from question that are
         answered in percent to this many digits.
 
     Returns
     -------
-    df_full : pd.DataFrame
-        Processed full data set
-    df_extract : pd.DataFrame
-        Processed extract data set
+    df_full
+        Processed full data set.
+    df_extract
+        Processed extract data set.
     """
-
     logger = logging.getLogger("SCE")
 
     # Process raw data, create full data set and smaller extract
@@ -79,8 +101,16 @@ def process_data(
     return df_full, df_extract
 
 
-def main(econf: EnvConfig):
+def main(econf: EnvConfig) -> None:
+    """
+    Main execution function for importing and processing SCE data.
 
+    Parameters
+    ----------
+    econf
+        Parsed environment configuration.
+    """
+    add_logfile("sce-import.log", logdir=econf.logdir, reltime=True)
     logger = logging.getLogger("SCE")
 
     # File names are assumed to be those from the SCE website
@@ -99,11 +129,11 @@ def main(econf: EnvConfig):
     df_all = []
 
     for file in files:
-        path = os.path.join(econf.inputdir, file)
+        path = econf.inputdir / file
 
         hsh = md5sum(path)
-        fn_cache = os.path.join(econf.cachedir, hsh + ".pkl.xz")
-        if os.path.isfile(fn_cache):
+        fn_cache = econf.cachedir / f"{hsh}.pkl.zstd"
+        if fn_cache.is_file():
             logger.info(f"Reading cached file {fn_cache}")
             df = pd.read_pickle(fn_cache)
         else:
@@ -117,12 +147,12 @@ def main(econf: EnvConfig):
 
         df_all.append(df)
 
-    df_orig = pd.concat(df_all, axis=0)
+    df_orig: pd.DataFrame = pd.concat(df_all, axis=0)
     df_orig = df_orig.sort_values(by=[VARNAME_ID, "date"]).reset_index(drop=True)
 
     # --- Load income rank data from ACS ---
 
-    fn = os.path.join(econf.repodir, "data", "IPUMS_ftotinc_rank_by_year_sce_bins.csv")
+    fn = econf.repodir / "data" / "IPUMS_ftotinc_rank_by_year_sce_bins.csv"
     df_ranks = pd.read_csv(fn)
 
     # --- Process SCE data ---
@@ -146,36 +176,36 @@ def main(econf: EnvConfig):
 
     # --- Store results ---
 
-    fn = os.path.join(econf.datadir, "sce_extract.pkl.xz")
+    fn = econf.datadir / "sce_extract.pkl.zstd"
     logger.info(f"Saving SCE extract to {fn}")
     df_extract.to_pickle(fn, protocol=5)
 
-    fn = os.path.join(econf.datadir, "sce_full.pkl.xz")
+    fn = econf.datadir / "sce_full.pkl.zstd"
     logger.info(f"Saving full SCE data to {fn}")
     df_full.to_pickle(fn, protocol=5)
 
     # --- Export to Stata ---
 
-    fn = os.path.join(econf.datadir, "sce_extract.dta")
+    fn = econf.datadir / "sce_extract.dta"
     logger.info(f"Saving SCE extract to {fn}")
     df_extract.to_stata(fn, convert_dates={"date": "td"}, version=118, write_index=True)
 
-    fn = os.path.join(econf.datadir, "sce_full.dta")
+    fn = econf.datadir / "sce_full.dta"
     logger.info(f"Saving full SCE data to {fn}")
     df_full.to_stata(fn, convert_dates={"date": "td"}, version=118, write_index=True)
 
     # --- Export to Excel ----
 
-    fn = os.path.join(econf.datadir, "sce_extract.xlsx")
+    fn = econf.datadir / "sce_extract.xlsx"
     logger.info(f"Saving SCE extract to {fn}")
     df_extract.to_excel(fn, index=True, sheet_name="SCE")
 
     # --- Export to CSV ---
 
-    fn = os.path.join(econf.datadir, "sce_extract.csv")
+    fn = econf.datadir / "sce_extract.csv"
     logger.info(f"Saving SCE extract to {fn}")
     df_extract.to_csv(fn, index=True)
 
 
 if __name__ == "__main__":
-    main(env_setup())
+    main(EnvConfig.setup())

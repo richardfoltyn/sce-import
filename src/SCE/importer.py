@@ -1,5 +1,15 @@
+"""
+Module to import and process SCE survey data.
+
+- Processes raw survey variables and maps them to clean representations.
+- Flips signs for variables where decreases were coded as positive.
+- Computes correct data types and formats demographic indicators.
+- Merges external family income ranks based on ACS data.
+
+Author: Richard Foltyn
+"""
+
 import logging
-from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -7,20 +17,27 @@ import pandas as pd
 from SCE.constants import VARNAME_ID, VARNAME_WID
 from SCE.pandas_helpers import merge_if_na, tile_const, try_cast
 
-LOGGER_NAME = "SCE"
+LOGGER_NAME: str = "SCE"
 
 
 def flip_negative(s: pd.Series, negative: pd.Series) -> pd.Series:
     """
-    Flip the sign of a variable if needed so that decreases are coded as
-    negative numbers.
+    Flip the sign of a variable if needed.
+
+    Ensures that decreases are coded as negative numbers.
 
     Parameters
     ----------
-    s : pd.DataFrame
-    negative : pd.Series
-    """
+    s
+        The pandas Series containing the variable values.
+    negative
+        Boolean Series indicating if the value represents a decrease.
 
+    Returns
+    -------
+    pd.Series
+        The adjusted Series with correct signs.
+    """
     s = s.copy(deep=True)
 
     name = s.name
@@ -49,23 +66,28 @@ def flip_negative(s: pd.Series, negative: pd.Series) -> pd.Series:
 
 
 def process_sce(
-    df: pd.DataFrame, decimals_percent: Optional[int] = None
+    df: pd.DataFrame,
+    decimals_percent: int | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Process the SCE raw data and create a full dataset and a reduced extract.
 
     Parameters
     ----------
-    df : pd.DataFrame
-    decimals_percent : int, optional
+    df
+        Raw SCE DataFrame.
+    decimals_percent
         If not None, round questions or statistics computed from question that are
         answered in percent to this many digits.
 
     Returns
     -------
-
+    df_full
+        Processed full dataset.
+    df_extract
+        Processed extract dataset.
     """
-    logger = logging.getLogger(LOGGER_NAME)
+    logging.getLogger(LOGGER_NAME)
 
     df = df.rename(columns={"date": VARNAME_WID, "survey_date": "date"})
     df = df.set_index([VARNAME_ID, VARNAME_WID]).sort_index()
@@ -76,7 +98,7 @@ def process_sce(
     df_extract = df[columns].copy(deep=True)
 
     # Convert datetimens[64] to simple dates as the time is always midnight
-    date = df["date"].values.astype("datetime64[D]")
+    date = df["date"].values.astype("datetime64[D]")  # type: ignore
     df_full["date"] = date
     df_extract["date"] = date
 
@@ -173,9 +195,9 @@ def process_sce(
         df_extract["infl_5y"] = df_full[varname]
 
         # Q9new2: inflation forecast bins, months 48-60 from interview.
-        columns = [f"Q9new2_bin{i}" for i in range(1, 11)]
+        cols_q9 = [f"Q9new2_bin{i}" for i in range(1, 11)]
         # These columns are missing in later surveys
-        columns = df.filter(items=columns, axis=1)
+        columns = df.filter(items=cols_q9, axis=1).columns.to_list()
         df_full[columns] = df[columns]
 
     # --- Employment ---
@@ -552,9 +574,9 @@ def process_sce(
 
     # dHH2: Spouses employment situation?
     d = df.filter(regex=r"^DHH2_[\d]+$", axis=1)
-    if d.shape[1] > 0:
-        for name, col in d.items():
-            # Remove leading "D"
+    for name, col in d.items():
+        # Remove leading "D"
+        if isinstance(name, str):
             dst = name[1:]
             df_full[dst] = merge_if_na(df_full[dst], col)
 
@@ -574,25 +596,27 @@ def process_sce(
 
 
 def merge_inc_rank(
-    df: pd.DataFrame, varname_inc_bin: str, df_ranks: pd.DataFrame
+    df: pd.DataFrame,
+    varname_inc_bin: str,
+    df_ranks: pd.DataFrame,
 ) -> pd.Series:
     """
     Merge median income rank conditional on income bin.
 
     Parameters
     ----------
-    df : pd.DataFrame
-        SCE data
-    varname_inc_bin : str
-        Income bin variable name
-    df_ranks : pd.DataFrame
-        Income rank data from ACS
+    df
+        SCE data DataFrame.
+    varname_inc_bin
+        Income bin variable name.
+    df_ranks
+        Income rank data from ACS.
 
     Returns
     -------
     pd.Series
+        The merged income rank Series.
     """
-
     logger = logging.getLogger(LOGGER_NAME)
 
     logger.info("Merging income rank to income bins")
@@ -633,13 +657,6 @@ def merge_inc_rank(
         logger.warning(f"Missing income rank for years: {years_missing}")
         logger.critical("Forward-filling of missing years not implemented yet")
         raise NotImplementedError()
-        # Fill forward data from previous year
-        df_ranks_orig = df_ranks.set_index(["year", varname_inc_bin]).sort_index()
-        bins = df_ranks_orig.index.get_level_values(varname_inc_bin).unique()
-        midx = pd.MultiIndex.from_product(
-            [years_missing, bins], names=["year", varname_inc_bin]
-        )
-        df_ranks_missing = df_ranks.reindex(midx, method="ffill", level=varname_inc_bin)
 
     df = df.merge(
         df_ranks,
