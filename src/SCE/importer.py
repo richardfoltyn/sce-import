@@ -21,49 +21,100 @@ from SCE.pandas_helpers import merge_if_na, tile_const, try_cast
 LOGGER_NAME: str = "SCE"
 
 
-def flip_negative(s: pd.Series, negative: pd.Series) -> pd.Series:
-    """
-    Flip the sign of a variable if needed.
-
-    Ensures that decreases are coded as negative numbers.
+def flip_negative(
+    s: pd.Series,
+    direction: pd.Series,
+    *,
+    decrease_code: int,
+) -> pd.Series:
+    """Conservatively normalize an unsigned change Series when its convention is clear.
 
     Parameters
     ----------
     s
-        The pandas Series containing the variable values.
-    negative
-        Boolean Series indicating if the value represents a decrease.
+        Values that may contain either unsigned magnitudes or signed changes.
+    direction
+        Direction responses associated with the values. Missing responses are
+        distinct from explicit non-decrease responses.
+    decrease_code
+        Direction code identifying a decrease or deflation.
 
     Returns
     -------
     pd.Series
-        The adjusted Series with correct signs.
-    """
-    s = s.copy(deep=True)
+        A copy of the values. Explicit decreases are negated only when every
+        non-missing value in the Series is nonnegative.
 
-    name = s.name
-    wrong_neg = (s.loc[negative] > 0).sum()
-    wrong_pos = (s.loc[~negative] < 0).sum()
+    Notes
+    -----
+    The source convention can change between survey releases. A Series that
+    mixes signed and unsigned values is therefore left entirely unchanged rather
+    than normalized row by row. Values with missing direction are always
+    preserved, although a negative such value prevents classifying the complete
+    Series as uniformly unsigned.
+    """
+    result = s.copy(deep=True)
+
+    has_value = result.notna()
+    has_direction = direction.notna()
+    decrease = has_direction & direction.eq(decrease_code)
+    non_decrease = has_direction & direction.ne(decrease_code)
+
+    decrease_values = has_value & decrease
+    non_decrease_values = has_value & non_decrease
+    missing_direction_values = has_value & ~has_direction
+
+    n_decrease = int(decrease_values.sum())
+    n_non_decrease = int(non_decrease_values.sum())
+    n_missing_direction = int(missing_direction_values.sum())
+    counts = (
+        f"{n_decrease:,d} decrease, {n_non_decrease:,d} non-decrease, "
+        f"{n_missing_direction:,d} missing direction"
+    )
 
     logger = logging.getLogger(LOGGER_NAME)
+    name = result.name
 
-    if (wrong_neg == 0) and (wrong_pos == 0):
-        # Sign is already correct
-        logger.info(f"Signs in {name} are correct, leaving unchanged")
-    elif (s.loc[negative].fillna(0.0) >= 0).all() and (wrong_pos == 0):
-        # Sign needs to be flipped
-        logger.info(f"Flipping sign in {name} to negative")
-        s.loc[negative] *= -1
+    if n_decrease + n_non_decrease == 0:
+        logger.info(
+            f"No values with observed direction in {name}; leaving unchanged ({counts})"
+        )
+        return result
+
+    signed = (result.loc[decrease_values] <= 0).all() and (
+        result.loc[non_decrease_values] >= 0
+    ).all()
+    uniformly_unsigned = (result.loc[has_value] >= 0).all()
+
+    if signed:
+        logger.info(
+            f"Signs in {name} are already normalized; leaving unchanged ({counts})"
+        )
+    elif uniformly_unsigned:
+        n_flipped = int((result.loc[decrease_values] > 0).sum())
+        logger.info(
+            f"Unsigned sign convention in {name}; flipping {n_flipped:,d} "
+            f"explicit decrease values ({counts})"
+        )
+        result.loc[decrease_values] *= -1
     else:
-        logger.warning(f"{name} has ambiguous sign, leaving unchanged:")
-        if wrong_neg:
-            n = s.loc[negative].count()
-            logger.warning(f"  {wrong_neg:,d} (out of {n:,d}) wrong negative values")
-        if wrong_pos:
-            n = s.loc[~negative].count()
-            logger.warning(f"  {wrong_pos:,d} (out of {n:,d}) wrong positive values")
+        positive_decrease = int((result.loc[decrease_values] > 0).sum())
+        negative_decrease = int((result.loc[decrease_values] < 0).sum())
+        negative_non_decrease = int((result.loc[non_decrease_values] < 0).sum())
+        logger.warning(
+            f"{name} has mixed or contradictory sign evidence; leaving unchanged "
+            f"({counts})"
+        )
+        logger.warning(
+            f"  observed decreases: {positive_decrease:,d} positive and "
+            f"{negative_decrease:,d} negative values"
+        )
+        if negative_non_decrease:
+            logger.warning(
+                f"  observed non-decreases: {negative_non_decrease:,d} negative values"
+            )
 
-    return s
+    return result
 
 
 def recode_binary_response(
@@ -227,8 +278,7 @@ def process_sce(
     varname = "Q8v2part2"
     df_full[varname] = df[varname]
     # Check that sign was flipped in Q8v2part2 (direction: 1=increase, 2=decrease)
-    deflation = df["Q8v2"] == 2
-    df_full[varname] = flip_negative(df_full[varname], deflation)
+    df_full[varname] = flip_negative(df_full[varname], df["Q8v2"], decrease_code=2)
 
     df_extract["infl_1y"] = df_full[varname]
 
@@ -248,8 +298,7 @@ def process_sce(
     varname = "Q9bv2part2"
     df_full[varname] = df[varname]
     # Check if sign needs to be flipped (direction: 1=increase, 2=decrease)
-    deflation = df["Q9bv2"] == 2
-    df_full[varname] = flip_negative(df_full[varname], deflation)
+    df_full[varname] = flip_negative(df_full[varname], df["Q9bv2"], decrease_code=2)
 
     df_extract["infl_3y"] = df_full[varname]
 
@@ -272,8 +321,7 @@ def process_sce(
         # Merge questions Q1a and Q1apart2
         df_full[varname] = df[varname]
         # Check if sign needs to be flipped (direction: 1=increase, 2=decrease)
-        deflation = df["Q1a"] == 2
-        df_full[varname] = flip_negative(df_full[varname], deflation)
+        df_full[varname] = flip_negative(df_full[varname], df["Q1a"], decrease_code=2)
 
         df_extract["infl_5y"] = df_full[varname]
 
@@ -400,8 +448,7 @@ def process_sce(
     # Q23v2part2: percent increase/decrease in earnings
     varname = "Q23v2part2"
     df_full[varname] = df[varname]
-    negative = df["Q23v2"] == 3
-    df_full[varname] = flip_negative(df_full[varname], negative)
+    df_full[varname] = flip_negative(df_full[varname], df["Q23v2"], decrease_code=3)
 
     df_extract["earnings_change"] = df_full[varname]
 
@@ -415,8 +462,7 @@ def process_sce(
     # Q25v2part2: percent increase/decrease in household income
     varname = "Q25v2part2"
     df_full[varname] = df[varname]
-    negative = df["Q25v2"] == 3
-    df_full[varname] = flip_negative(df_full[varname], negative)
+    df_full[varname] = flip_negative(df_full[varname], df["Q25v2"], decrease_code=3)
 
     df_extract["hh_inc_change"] = df_full[varname]
 
@@ -427,8 +473,7 @@ def process_sce(
     # Q26v2part2: percent increase/decrease in household spending
     varname = "Q26v2part2"
     df_full[varname] = df[varname]
-    negative = df["Q26v2"] == 3
-    df_full[varname] = flip_negative(df_full[varname], negative)
+    df_full[varname] = flip_negative(df_full[varname], df["Q26v2"], decrease_code=3)
 
     df_extract["hh_spending_change"] = df_full[varname]
 
@@ -439,8 +484,7 @@ def process_sce(
     # Q27v2part2: percent increase/decrease in total taxes
     varname = "Q27v2part2"
     df_full[varname] = df[varname]
-    negative = df["Q27v2"] == 3
-    df_full[varname] = flip_negative(df_full[varname], negative)
+    df_full[varname] = flip_negative(df_full[varname], df["Q27v2"], decrease_code=3)
 
     df_extract["taxes_change"] = df_full[varname]
 
@@ -465,10 +509,9 @@ def process_sce(
     # Q31v2part2: percent increase/decrease in house prices
     varname = "Q31v2part2"
     df_full[varname] = df[varname]
-    negative = df["Q31v2"] == 3
-    df_full[varname] = flip_negative(df_full[varname], negative)
+    df_full[varname] = flip_negative(df_full[varname], df["Q31v2"], decrease_code=3)
 
-    df_extract["house_price_change"] = df[varname]
+    df_extract["house_price_change"] = df_full[varname]
 
     # C1: PMF over national house price changes
     d = df.filter(regex="C1_.*", axis=1)
@@ -480,8 +523,7 @@ def process_sce(
     # C2part2: percent increase/decrease in house prices
     varname = "C2part2"
     df_full[varname] = df[varname]
-    negative = df["C2"] == 3
-    df_full[varname] = flip_negative(df_full[varname], negative)
+    df_full[varname] = flip_negative(df_full[varname], df["C2"], decrease_code=3)
 
     df_extract["house_price_change_3y"] = df_full[varname]
 
@@ -492,8 +534,7 @@ def process_sce(
     # C3part2: percent increase/decrease in US government debt
     varname = "C3part2"
     df_full[varname] = df[varname]
-    negative = df["C3"] == 3
-    df_full[varname] = flip_negative(df_full[varname], negative)
+    df_full[varname] = flip_negative(df_full[varname], df["C3"], decrease_code=3)
 
     df_extract["govt_debt_change"] = df_full[varname]
 

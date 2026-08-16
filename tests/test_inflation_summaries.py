@@ -209,3 +209,19 @@ def test_centralized_rounding(
     assert df_extract.loc[idx, "infl_1y_bin_mean"] == expected_1y_mean
     assert df_extract.loc[idx, "infl_3y"] == expected_3y
     assert df_extract.loc[idx, "infl_5y_bin_prob_defl"] == expected_5y_prob
+
+
+def test_house_price_extract_uses_normalized_full_value() -> None:
+    """Verify full and extract house-price changes share sign normalization."""
+    df_raw = _make_dummy_sce_df(
+        {
+            "Q31v2": [3],
+            "Q31v2part2": [2.5],
+        }
+    )
+
+    df_full, df_extract = process_sce(df_raw)
+
+    idx = (10001, 202401)
+    assert df_full.loc[idx, "Q31v2part2"] == -2.5
+    assert df_extract.loc[idx, "house_price_change"] == -2.5

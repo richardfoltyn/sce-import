@@ -473,53 +473,84 @@ three-year, and 263 five-year point forecasts with more than two decimal places.
 
 ---
 
-## [ ] SCE-009 — Make sign normalization row-safe and use normalized values in every extract
+## [x] SCE-009 — Preserve conservative sign-convention detection and use normalized values in every extract
 
-**Priority:** P1  
+**Priority:** P2
 **Files:** `src/SCE/importer.py` (`flip_negative`, lines 21–63; sign-processing
-blocks, especially line 348)
+blocks, especially the house-price extract)
 
 ### Problem
 
-`flip_negative` infers one convention for an entire Series. If it sees a mixture
-of already-signed and unsigned values, it logs “ambiguous” and leaves known
-wrong-sign rows unchanged. It also receives only a Boolean mask, so a missing
-direction response is indistinguishable from an explicit non-decrease response.
-This causes the current `Q1apart2` warning: 1,445 negative values with missing
-`Q1a` are counted as wrong “positive-direction” values even though the signed
-forecast itself is usable.
+`flip_negative` is intentionally conservative. Source releases may encode a
+reported decrease either as an unsigned positive magnitude or as an already
+negative value. The helper should infer one convention for the Series and flip
+explicit decrease/deflation observations only when the entire observed Series is
+consistently unsigned. If signed and unsigned decrease values are mixed, the
+coding regime cannot be inferred safely and no individual rows should be
+changed. Row-wise normalization with `abs` or `-abs` would defeat this safeguard.
 
-There is also a direct consistency bug in the house-price extract:
+The current implementation nevertheless has two narrower problems. First, it
+receives only a non-nullable Boolean decrease mask. Negating that mask classifies
+a missing direction response as an explicit non-decrease response. This causes
+the current `Q1apart2` warning: 1,445 negative values with missing `Q1a` are
+reported as wrong “positive-direction” values, even though their direction is
+unknown and the signed forecasts should simply be preserved. Missing-direction
+values may be evidence that a Series is not uniformly unsigned, but they are not
+contradictory direction/value pairs.
+
+Second, the house-price extract bypasses the result of sign normalization:
 
 ```python
 df_extract["house_price_change"] = df[varname]
 ```
 
-It bypasses the normalized `df_full[varname]`. Current source values happen to
-already be signed, but any dataset that actually needs the advertised correction
-would produce inconsistent full and extract outputs.
+Current source values happen to be already signed, but a uniformly unsigned
+future source would then produce inconsistent full and extract outputs.
 
 ### Task
 
-1. Redesign sign normalization to operate row by row on explicitly observed
-   direction codes. Preserve signed values when the direction code is missing.
-2. Correct positive magnitudes for explicit decrease/deflation responses without
-   changing already-negative values.
-3. Validate explicit increase responses separately; do not include missing
-   direction rows in that validation.
-4. Make all extracts, including `house_price_change`, read from the normalized
-   full Series.
-5. Log counts by action (flipped, already correct, missing direction, genuinely
-   contradictory) rather than making an all-or-nothing decision.
+1. Retain and document the all-or-nothing, Series-level convention policy; do
+   not normalize mixed-convention observations row by row.
+2. Represent observed decrease, observed non-decrease, and missing direction as
+   distinct states. Exclude missing direction from direction-consistency checks
+   and preserve its values unchanged.
+3. Flip only explicitly observed decrease/deflation rows, and only when the
+   complete non-missing value Series is consistently unsigned (nonnegative).
+   Leave a consistently signed Series unchanged; leave every value in a
+   mixed/ambiguous Series unchanged.
+4. Make all extracts, including `house_price_change`, read from the processed
+   `df_full` Series.
+5. Log the inferred convention and separate counts for observed direction,
+   missing direction, and contradictory/mixed evidence without describing
+   missing direction as an explicit positive-direction response.
 
 ### Acceptance criteria
 
-- Mixed signed/unsigned decrease rows are normalized independently.
-- Missing direction plus a negative signed value is preserved and does not
-  generate a false contradiction warning.
-- Every full/extract pair is equal after normalization.
-- Focused fixtures cover increase, decrease, zero, missing value, missing
-  direction, and mixed-convention input.
+- A uniformly nonnegative source has only its explicitly identified decreases
+  flipped.
+- A consistently signed source is left unchanged.
+- A source mixing signed and unsigned decrease values is diagnosed as ambiguous
+  and is left unchanged in full; no row-wise correction occurs.
+- Values with missing direction are preserved and are not counted as explicit
+  non-decrease contradictions; the current `Q1apart2` data no longer produce the
+  misleading warning.
+- Every full/extract pair is equal after any normalization.
+- Focused fixtures cover signed, uniformly unsigned, mixed-convention, zero,
+  missing value, and missing-direction input.
+
+### Completion notes
+
+- `flip_negative` now receives the original direction response and its decrease
+  code, so observed decreases, observed non-decreases, and missing directions
+  remain distinct.
+- The helper retains conservative Series-level inference: it flips explicit
+  decreases only for a uniformly nonnegative source and leaves consistently
+  signed or mixed-convention sources unchanged as appropriate.
+- Missing-direction values are preserved and reported separately rather than
+  being classified as non-decreases. This removes the misleading `Q1apart2`
+  contradiction warning.
+- `house_price_change` now reads from the normalized full Series. Regression
+  fixtures verify conservative convention handling and full/extract equality.
 
 ---
 
