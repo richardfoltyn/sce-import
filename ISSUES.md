@@ -269,7 +269,7 @@ After initial and repeat responses are merged, `df_full["HH2_1"]` and
 
 ---
 
-## [ ] SCE-005 — Correct the ACS reference-year calculation on month-start interview dates
+## [x] SCE-005 — Correct the ACS reference-year calculation on month-start interview dates
 
 **Priority:** P1  
 **Files:** `src/SCE/importer.py` (`merge_inc_rank`, lines 628–637)
@@ -305,6 +305,16 @@ first day of January or July.
 - July 1 and July 2 map to the same reference year.
 - Boundary fixtures cover December/January, June/July, and leap-year dates.
 - Reference-year assignment depends on survey month, not interview day.
+
+### Completion notes
+
+- ACS reference years are now assigned by a shared, month-period-based helper:
+  January--June map to the previous calendar year and July--December map to the
+  current calendar year.
+- Both full and extract rank merges use the helper through `merge_inc_rank`, so
+  interview days at the January and July boundaries no longer alter the result.
+- Focused fixtures cover December/January, June/July, same-month day invariance,
+  and a leap-day interview.
 
 ---
 

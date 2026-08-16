@@ -697,6 +697,33 @@ def process_sce(
     return df_full, df_extract
 
 
+def income_reference_year(dates: pd.Series) -> pd.Series:
+    """Assign the ACS reference year from the SCE interview month.
+
+    Parameters
+    ----------
+    dates
+        SCE interview dates.
+
+    Returns
+    -------
+    pd.Series
+        ACS reference years, indexed like ``dates``.
+
+    Notes
+    -----
+    SCE household income refers to the preceding 12 months. Interviews from
+    January through June use the previous calendar year, while interviews from
+    July through December use the current calendar year. Calendar-month periods
+    ensure that the interview day cannot affect this assignment.
+    """
+    survey_month = dates.dt.to_period("M")
+    # The existing ACS alignment switches reference years halfway through the
+    # survey year because respondents report income over the preceding 12 months.
+    previous_year = survey_month.dt.month.le(6).astype(np.int8)
+    return (survey_month.dt.year - previous_year).rename("year")
+
+
 def merge_inc_rank(
     df: pd.DataFrame,
     varname_inc_bin: str,
@@ -728,15 +755,7 @@ def merge_inc_rank(
     logger.info(f"    {years_in_ranks}")
 
     df = df.copy()
-    # Household income is reported as income over the last 12 months. Align at the
-    # beginning of the month and check fraction of past 12 months in current year.
-    beg_month = df["date"] - pd.offsets.MonthBegin()
-    # Fraction of last 12 months falling into current year
-    frac = (beg_month.dt.month - 1) / 11
-    # Select current or previous year based on fraction
-    year = df["date"].dt.year - (frac < 0.5)
-
-    df["year"] = year
+    df["year"] = income_reference_year(df["date"])
 
     # Rescale to rank percentiles on [0, 100]
     df_ranks = df_ranks.copy()
