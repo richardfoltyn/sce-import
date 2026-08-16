@@ -318,7 +318,7 @@ first day of January or July.
 
 ---
 
-## [ ] SCE-006 — Make `final_date` usable and apply it before the ACS merge
+## [x] SCE-006 — Make `final_date` usable and apply it before the ACS merge
 
 **Priority:** P1  
 **Files:** `src/main.py` (`process_data` around lines 43–101 and `main` around
@@ -355,6 +355,18 @@ actual value is `None`.
 - An invalid CLI date fails with a concise argparse error.
 - A small in-memory frame verifies inclusive end-date behavior without running
   `src/main.py`.
+
+### Completion notes
+
+- Programmatic `datetime.date` and `pd.Timestamp` cutoffs are normalized to a
+  date-level `pd.Timestamp` and applied inclusively to both processed frames
+  before either ACS rank merge.
+- `--final-date YYYY-MM-DD` now supplies the cutoff through `EnvConfig`; invalid
+  calendar dates produce a concise argparse error. The documented default
+  remains unbounded for backward compatibility.
+- In-memory fixtures cover both accepted programmatic input types, inclusive
+  filtering, full/extract index alignment, pre-merge filtering, and CLI date
+  parsing without loading the raw workbooks.
 
 ---
 

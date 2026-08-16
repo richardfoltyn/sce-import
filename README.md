@@ -39,6 +39,15 @@ Optional CLI flags:
 - `--run-dir <path>`: Runtime output base directory (defaults to `~/run/sce-import`).
 - `--data-dir <path>`: Directory for processed output files (defaults to `<run-dir>/output`).
 - `--graph-dir <path>`: Directory for diagnostic plots (defaults to `<run-dir>/graphs`).
+- `--final-date YYYY-MM-DD`: Inclusive final survey date to retain. The default is
+  unbounded.
+
+Because FRBNY updates the latest workbook in place, pass `--final-date` when a
+reproducible, date-pinned sample is required. For example:
+
+```bash
+uv run src/main.py --final-date 2024-10-01
+```
 
 ### 2. Generate Diagnostic Plots
 

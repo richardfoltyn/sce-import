@@ -7,7 +7,7 @@ Module to set up environment for running all Python scripts.
 Author: Richard Foltyn
 """
 
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentParser, ArgumentTypeError, Namespace
 import datetime
 import logging
 from pathlib import Path
@@ -217,6 +217,38 @@ pd.set_option("display.max_info_columns", 200)
 np.set_printoptions(linewidth=150)
 
 
+def parse_iso_date(value: str) -> datetime.date:
+    """Parse an ISO calendar date for a command-line option.
+
+    Parameters
+    ----------
+    value
+        Date text in ``YYYY-MM-DD`` format.
+
+    Returns
+    -------
+    datetime.date
+        Parsed calendar date.
+
+    Raises
+    ------
+    ArgumentTypeError
+        If ``value`` is not a valid date in the required format.
+    """
+    message = f"invalid date {value!r}; expected YYYY-MM-DD"
+    try:
+        parsed = datetime.date.fromisoformat(value)
+    except ValueError as exc:
+        raise ArgumentTypeError(message) from exc
+
+    # date.fromisoformat also accepts compact ISO forms; require the documented
+    # dashed CLI representation to keep invocation and error messages predictable.
+    if value != parsed.isoformat():
+        raise ArgumentTypeError(message)
+
+    return parsed
+
+
 class EnvConfig(Namespace):
     """
     Custom Namespace class used to hold parsed command-line arguments.
@@ -231,6 +263,7 @@ class EnvConfig(Namespace):
     datadir: Path
     logdir: Path
     cachedir: Path
+    final_date: datetime.date | None
 
     def __init__(self) -> None:
         """
@@ -254,6 +287,7 @@ class EnvConfig(Namespace):
         self.datadir = Path()
         self.logdir = Path()
         self.cachedir = Path()
+        self.final_date = None
 
     def set_defaults(self) -> None:
         """
@@ -338,6 +372,12 @@ class EnvConfig(Namespace):
             dest="_cachedir",
             type=Path,
             help="Cache directory",
+        )
+        parser.add_argument(
+            "--final-date",
+            type=parse_iso_date,
+            metavar="YYYY-MM-DD",
+            help="inclusive final survey date (default: unbounded)",
         )
 
     @classmethod

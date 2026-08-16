@@ -42,10 +42,53 @@ def md5sum(file_path: Path) -> str:
     return hash_md5.hexdigest()
 
 
+def restrict_to_final_date(
+    df_full: pd.DataFrame,
+    df_extract: pd.DataFrame,
+    final_date: datetime.date | pd.Timestamp,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Restrict processed SCE frames to an inclusive final survey date.
+
+    Parameters
+    ----------
+    df_full
+        Processed full SCE data.
+    df_extract
+        Processed SCE extract.
+    final_date
+        Final survey date to retain. Time components are ignored.
+
+    Returns
+    -------
+    df_full
+        Filtered full SCE data.
+    df_extract
+        Filtered SCE extract.
+    """
+    logger = logging.getLogger("SCE")
+
+    # SCE interview dates identify calendar days without a meaningful time of
+    # day, so normalize Timestamp inputs before applying the inclusive cutoff.
+    cutoff = pd.Timestamp(final_date).normalize()
+    logger.info(f"Restricting sample to dates before and including {cutoff.date()}")
+
+    keep = df_full["date"] <= cutoff
+    if (n := len(keep) - keep.sum()) > 0:
+        logger.warning(f"  {n:,d} observations are excluded from the full data set")
+    df_full = df_full[keep].copy()
+
+    keep = df_extract["date"] <= cutoff
+    if (n := len(keep) - keep.sum()) > 0:
+        logger.warning(f"  {n:,d} observations are excluded from the extract")
+    df_extract = df_extract[keep].copy()
+
+    return df_full, df_extract
+
+
 def process_data(
     df_orig: pd.DataFrame,
     df_ranks: pd.DataFrame | None = None,
-    final_date: datetime.date | None = None,
+    final_date: datetime.date | pd.Timestamp | None = None,
     decimals_percent: int | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
@@ -58,7 +101,8 @@ def process_data(
     df_ranks
         Mapping of family income in USD to income ranks.
     final_date
-        If not None, restrict sample to dates before and including this date.
+        If not None, restrict the sample to dates before and including this date.
+        Time components are ignored.
     decimals_percent
         If not None, round questions or statistics computed from question that are
         answered in percent to this many digits.
@@ -70,10 +114,15 @@ def process_data(
     df_extract
         Processed extract data set.
     """
-    logger = logging.getLogger("SCE")
-
     # Process raw data, create full data set and smaller extract
     df_full, df_extract = process_sce(df_orig, decimals_percent=decimals_percent)
+
+    # Restrict both outputs before the ACS merge so a pinned sample cannot fail
+    # because later, excluded survey months lack a corresponding rank year.
+    if final_date is not None:
+        df_full, df_extract = restrict_to_final_date(
+            df_full, df_extract, final_date
+        )
 
     # --- Merge HH income ranks from ACS ---
 
@@ -83,20 +132,6 @@ def process_data(
 
         df_rank = merge_inc_rank(df_extract, "hh_inc_bin", df_ranks)
         df_extract = pd.concat((df_extract, df_rank), axis=1)
-
-    # --- Restrict sample by final date ---
-
-    if final_date is not None:
-        logger.info(f"Restricting sample to dates before and including {final_date}")
-        keep = df_full["date"] <= final_date
-        if (n := len(keep) - keep.sum()) > 0:
-            logger.warning(f"  {n:,d} observations are excluded from the full data set")
-        df_full = df_full[keep].copy()
-
-        keep = df_extract["date"] <= final_date
-        if (n := len(keep) - keep.sum()) > 0:
-            logger.warning(f"  {n:,d} observations are excluded from the extract")
-        df_extract = df_extract[keep].copy()
 
     return df_full, df_extract
 
@@ -157,14 +192,11 @@ def main(econf: EnvConfig) -> None:
 
     # --- Process SCE data ---
 
-    # The Fed NY silently updates the current file, so there is no way to get exactly
-    # the same sample as earlier. Impose some terminal date to keep the sample period
-    # the same.
-    # final_date = pd.to_datetime("2024-10-01")
-    final_date = None
-
     df_full, df_extract = process_data(
-        df_orig, df_ranks, final_date, decimals_percent=2
+        df_orig,
+        df_ranks,
+        final_date=econf.final_date,
+        decimals_percent=2,
     )
 
     # --- Tabulate distribution of spell lengths ---
