@@ -384,8 +384,8 @@ def main(econf: EnvConfig) -> None:
     if not fn.is_file():
         raise SystemExit(
             f"Pickle output not found: {fn}\n"
-            "Re-run the importer with '--formats pickle' (or '--formats all') "
-            "to generate the required output."
+            "Re-run the importer with '--formats pickle' to generate the "
+            "required output."
         )
     df: pd.DataFrame = pd.read_pickle(fn)
 

@@ -976,7 +976,7 @@ second overwrites the first.
 
 ---
 
-## [ ] SCE-017 — Make expensive export formats selectable
+## [x] SCE-017 — Make expensive export formats selectable
 
 **Priority:** P2  
 **Files:** `src/main.py`, `src/env.py`, `README.md`
@@ -1024,12 +1024,8 @@ iteration unnecessarily slow.
 - 10 unit tests in `tests/test_export_formats.py` cover CLI parsing (valid,
   invalid, default, case-insensitive) on synthetic data; no raw SCE workbooks
   or production exports are needed.
-
-### Remaining work
-
-- Correct the malformed all-formats example in `README.md`.
-- Remove the unsupported `--formats all` suggestion from
-  `src/main_plot_diag.py` (or explicitly add `all` as a supported alias).
+- Corrected the README all-formats example and removed the unsupported
+  `--formats all` suggestion from the diagnostic error message.
 
 ---
 
