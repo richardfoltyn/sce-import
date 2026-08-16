@@ -61,7 +61,7 @@ drop ftotinc_sentinel
 
 // Generate person-level family income ranks within each survey year using the
 // ACS person weights.
-by year, sort: cumul ftotinc [fw=perwt], generate(rank)
+by year, sort: cumul ftotinc [fw=perwt], generate(rank) equal
 
 summarize ftotinc, detail
 summarize ftotinc [fw=perwt], detail
@@ -134,7 +134,7 @@ if `by_age' {
 drop if missing(ftotinc)
 
 // Generate person-level family income ranks within each survey year
-by `cellvars', sort: cumul ftotinc [fw=perwt], generate(rank)
+by `cellvars', sort: cumul ftotinc [fw=perwt], generate(rank) equal
 
 summarize ftotinc, detail
 summarize ftotinc [fw=perwt], detail
