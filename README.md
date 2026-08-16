@@ -1,6 +1,6 @@
 # sce-import
 
-`sce-import` is a Python-based utility to import, clean, structure, and export the Survey of Consumer Expectations (SCE) microdata from the Federal Reserve Bank of New York (FRBNY). It concatenates raw Excel datasets, maps variable labels, applies categorical enums, performs sign corrections, and merges external family income ranks computed from American Community Survey (ACS) data.
+`sce-import` is a Python-based utility to import, clean, structure, and export the Survey of Consumer Expectations (SCE) microdata from the Federal Reserve Bank of New York (FRBNY). It concatenates raw Excel datasets, maps variable labels, attaches variable and value labels to Stata and Pickle outputs, performs sign corrections, and merges external family income ranks computed from American Community Survey (ACS) data.
 
 ## Author
 

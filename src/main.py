@@ -17,6 +17,7 @@ from pathlib import Path
 import pandas as pd
 
 from env import EnvConfig, add_logfile
+from SCE.annotations import VALUE_LABELS, VARIABLE_LABELS
 from SCE.constants import VARNAME_ID
 from SCE.importer import merge_inc_rank, process_sce
 
@@ -82,6 +83,52 @@ def restrict_to_final_date(
     df_extract = df_extract[keep].copy()
 
     return df_full, df_extract
+
+
+def apply_metadata(
+    df: pd.DataFrame,
+    variable_labels: dict[str, str],
+    value_labels: dict[str, dict[int, str]],
+) -> pd.DataFrame:
+    """Attach variable and value label metadata to a processed SCE output.
+
+    Parameters
+    ----------
+    df
+        Processed SCE DataFrame with a ``(userid, wid)`` MultiIndex.
+    variable_labels
+        Mapping from column name (or index level name) to descriptive label.
+    value_labels
+        Mapping from column name to a ``{code: label}`` dict of value labels.
+
+    Returns
+    -------
+    pd.DataFrame
+        Copy of ``df`` with ``attrs["variable_labels"]`` and
+        ``attrs["value_labels"]`` populated. Labels are filtered to names
+        actually present so downstream exports do not fail on unknown keys.
+
+    Notes
+    -----
+    The filtered dicts are stored in ``df.attrs`` so they survive Pickle
+    round-trips. When passing to ``DataFrame.to_stata`` with
+    ``write_index=True``, include index level names (e.g. ``userid``, ``wid``)
+    in ``variable_labels`` so Stata receives labels for those columns too.
+    """
+    # Collect all names that will appear as columns in the Stata output,
+    # including index levels when write_index=True is used.
+    all_names: set[str] = set(df.columns.tolist())
+    if df.index.names:
+        all_names.update(str(n) for n in df.index.names if n is not None)
+
+    present_var = {k: v for k, v in variable_labels.items() if k in all_names}
+    # Value labels only apply to data columns, not index levels.
+    present_val = {k: v for k, v in value_labels.items() if k in df.columns}
+
+    df = df.copy()
+    df.attrs["variable_labels"] = present_var
+    df.attrs["value_labels"] = present_val
+    return df
 
 
 def process_data(
@@ -196,6 +243,10 @@ def main(econf: EnvConfig) -> None:
         decimals_percent=2,
     )
 
+    # Attach variable/value label metadata so both Pickle and Stata exports carry it.
+    df_full = apply_metadata(df_full, VARIABLE_LABELS, VALUE_LABELS)
+    df_extract = apply_metadata(df_extract, VARIABLE_LABELS, VALUE_LABELS)
+
     # --- Tabulate distribution of spell lengths ---
 
     df_obs = df_orig.groupby(VARNAME_ID).size().value_counts().sort_index()
@@ -205,6 +256,7 @@ def main(econf: EnvConfig) -> None:
 
     # --- Store results ---
 
+    # attrs (variable_labels, value_labels) survive the Pickle round-trip automatically.
     fn = econf.datadir / "sce_extract.pkl.zst"
     logger.info(f"Saving SCE extract to {fn}")
     df_extract.to_pickle(fn, protocol=5)
@@ -217,11 +269,25 @@ def main(econf: EnvConfig) -> None:
 
     fn = econf.datadir / "sce_extract.dta"
     logger.info(f"Saving SCE extract to {fn}")
-    df_extract.to_stata(fn, convert_dates={"date": "td"}, version=118, write_index=True)
+    df_extract.to_stata(
+        fn,
+        convert_dates={"date": "td"},
+        version=118,
+        write_index=True,
+        variable_labels=df_extract.attrs.get("variable_labels", {}),
+        value_labels=df_extract.attrs.get("value_labels", {}),
+    )
 
     fn = econf.datadir / "sce_full.dta"
     logger.info(f"Saving full SCE data to {fn}")
-    df_full.to_stata(fn, convert_dates={"date": "td"}, version=118, write_index=True)
+    df_full.to_stata(
+        fn,
+        convert_dates={"date": "td"},
+        version=118,
+        write_index=True,
+        variable_labels=df_full.attrs.get("variable_labels", {}),
+        value_labels=df_full.attrs.get("value_labels", {}),
+    )
 
     # --- Export to Excel ----
 

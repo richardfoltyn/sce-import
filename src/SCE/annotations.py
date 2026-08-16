@@ -3,9 +3,14 @@ Variable labels mappings for original and processed SCE survey variables.
 
 - VARIABLE_LABELS_ORIG: Raw/original question labels.
 - VARIABLE_LABELS: Modern/clean question labels.
+- VALUE_LABELS: Categorical value labels for encoded response codes.
 
 Author: Richard Foltyn
 """
+
+from collections.abc import Iterable
+
+from SCE.enums import INCOME_CATEGORIES, Educ4Enum, WellBeingEnum
 
 VARIABLE_LABELS_ORIG: dict[str, str] = {
     "tenure": "Tenure on survey",
@@ -105,22 +110,44 @@ VARIABLE_LABELS_ORIG: dict[str, str] = {
 }
 
 VARIABLE_LABELS: dict[str, str] = {
+    # Panel identifiers (written as columns when write_index=True in to_stata)
+    "userid": "Respondent identifier",
+    "wid": "Wave identifier (YYYYMM)",
+    # Meta-variables
     "tenure": "Tenure on survey",
     "weight": "Sampling weight",
+    "date": "Interview date",
+    # Financial well-being (WellBeingEnum: 1=Much worse, 5=Much better)
     "financial_past_12m": "Financially better/worse off than 12 months ago",
     "financial_12m": "Financially better/worse off 12 months from now",
+    # Expectations
     "prob_move_house": "Prob to move house",
     "prob_unrate_up": "Prob unemployment higher in 12 months",
     "prob_irate_up": "Prob interest rates higher in 12 months",
     "prob_stocks_up": "Prob stocks higher in 12 months",
+    # Inflation — point forecasts
     "infl_1y": "Rate of inflation/deflation over next 12 months",
     "infl_3y": "Rate of inflation/deflation 24 to 36 months from now",
     "infl_5y": "Rate of inflation/deflation 48 to 60 months from now",
+    # Inflation — 1-year density summaries
+    "infl_1y_bin_mean": "Mean of expected inflation rate over next 12 months",
+    "infl_1y_bin_var": "Variance of expected inflation rate over next 12 months",
+    "infl_1y_bin_median": "Median of expected inflation rate over next 12 months",
+    "infl_1y_bin_iqr": "IQR of expected inflation rate over next 12 months",
+    "infl_1y_bin_prob_defl": "Probability of deflation over next 12 months",
+    # Inflation — 3-year density summaries
+    "infl_3y_bin_mean": "Mean of expected inflation rate 24 to 36 months from now",
+    "infl_3y_bin_var": "Variance of expected inflation rate 24 to 36 months from now",
+    "infl_3y_bin_median": "Median of expected inflation rate 24 to 36 months from now",
+    "infl_3y_bin_iqr": "IQR of expected inflation rate 24 to 36 months from now",
+    "infl_3y_bin_prob_defl": "Probability of deflation 24 to 36 months from now",
+    # Inflation — 5-year density summaries
     "infl_5y_bin_mean": "Mean of expected inflation rate 48 to 60 months from now",
     "infl_5y_bin_var": "Variance of expected inflation rate 48 to 60 months from now",
     "infl_5y_bin_median": "Median of expected inflation rate 48 to 60 months from now",
     "infl_5y_bin_iqr": "IQR of expected inflation rate 48 to 60 months from now",
     "infl_5y_bin_prob_defl": "Probability of deflation 48 to 60 months from now",
+    # Employment
     "working": "Currently working?",
     "num_jobs": "Number of jobs",
     "self_employed": "Self-employed?",
@@ -132,16 +159,20 @@ VARIABLE_LABELS: dict[str, str] = {
     "jobless_length": "How long unempl/out of work?",
     "prob_search_job_12m": "Prob to start looking for a job within 12 months",
     "prob_search_job_3m": "Prob to start looking for a job within 3 months?",
+    # Income and spending changes
     "earnings_change": "Percent change in earnings",
-    "hh_income_change": "Percent change in HH income",
+    "hh_inc_change": "Percent change in HH income",
     "hh_spending_change": "Percent change in HH spending",
     "taxes_change": "Percent change in taxes",
-    "credit_cond_past12m": "Credit conditions vs 12 months ago",
+    # Credit conditions (Q28/Q29: 1=Much harder, 3=Equally easy/hard, 5=Much easier)
+    "credit_cond_past_12m": "Credit conditions vs 12 months ago",
     "credit_cond_12m": "Credit conditions in 12 months",
+    # Other financial
     "prob_miss_paym_3m": "Prob to miss debt payment over 3 months?",
     "house_price_change": "Percent change in house prices",
     "house_price_change_3y": "Percent change in house prices 24 to 36 months from now",
     "govt_debt_change": "Percent change in government debt",
+    # Numerical literacy
     "num_lit_q1": "A $300 sofa is half price. What is the cost?",
     "num_lit_q1_correct": "Num Q1 correct",
     "num_lit_q2": "$200 savings earns 10% yearly. Total after two years?",
@@ -156,6 +187,7 @@ VARIABLE_LABELS: dict[str, str] = {
     "num_lit_q8_correct": "Num Q8 correct",
     "num_lit_q9": "Single stock safer than MF",
     "num_lit_q9_correct": "Num Q9 correct",
+    # Demographics
     "age_init": "Initial age",
     "female": "Female?",
     "hispanic": "Hispanic/Latino?",
@@ -164,11 +196,118 @@ VARIABLE_LABELS: dict[str, str] = {
     "college": "College degree?",
     "owner": "Owns primary residence?",
     "num_kids": "Number of kids",
+    # Health (Q45b: 1=Excellent, 2=Very good, 3=Good, 4=Fair, 5=Poor)
     "health": "Self-reported health",
     "take_fin_risk": "Willingness to take financial risks?",
-    "hh_income": "Total HH income during past 12 months",
-    "hh_changed": "HH unchaged from last survey",
+    # HH income (11 bins from the SCE questionnaire, Q47)
+    "hh_inc_bin": "Total HH income bin (1-11)",
+    # ACS income rank percentile (0-100) conditional on income bin and survey year
+    "hh_inc_bin_rank": "ACS income rank percentile for HH income bin",
+    # Full-output equivalent of hh_inc_bin_rank (Q47_rank appears only in df_full)
+    "Q47_rank": "ACS income rank percentile for HH income bin (full output)",
+    # HH dynamics (repeat-interview variables)
+    # D1 coding: 1=unchanged, 2=changed; derived hh_changed is 1 when changed, 0 when unchanged
+    "hh_changed": "HH changed since last survey",
     "same_employer": "Same job as last survey?",
     "couple": "Married/living with partner?",
     "spouse_working": "Spouse/partner currently working?",
 }
+
+
+# Financial well-being (Q1/Q2): codes 1-5 per WellBeingEnum.
+# Code -1 is used as a fill-in placeholder for structurally missing responses.
+_WELL_BEING_LABELS: dict[int, str] = {int(e): str(e) for e in WellBeingEnum}
+
+# Binary 0/1 indicators derived from yes/no questionnaire responses
+_BINARY_LABELS: dict[int, str] = {0: "No", 1: "Yes"}
+
+# Credit conditions (Q28/Q29): 1=Much harder ... 5=Much easier.
+# Verified against questionnaire text (Q28, Q29).
+_CREDIT_COND_LABELS: dict[int, str] = {
+    1: "Much harder",
+    2: "Somewhat harder",
+    3: "Equally easy/hard",
+    4: "Somewhat easier",
+    5: "Much easier",
+}
+
+# Self-reported health (Q45b): 1=Excellent ... 5=Poor.
+# Verified against questionnaire text (Q45b).
+_HEALTH_LABELS: dict[int, str] = {
+    1: "Excellent",
+    2: "Very good",
+    3: "Good",
+    4: "Fair",
+    5: "Poor",
+}
+
+# Coarse education (Educ4Enum): 1=<HS, 2=HS, 3=Some college, 4=College+
+_EDUC4_LABELS: dict[int, str] = {int(e): str(e) for e in Educ4Enum}
+
+VALUE_LABELS: dict[str, dict[int, str]] = {
+    # Financial well-being (code -1 = fillna placeholder for structurally missing)
+    "Q1": _WELL_BEING_LABELS,
+    "financial_past_12m": _WELL_BEING_LABELS,
+    "Q2": _WELL_BEING_LABELS,
+    "financial_12m": _WELL_BEING_LABELS,
+    # HH income bins (codes 1-11, see INCOME_CATEGORIES in enums.py)
+    "Q47": INCOME_CATEGORIES,
+    "hh_inc_bin": INCOME_CATEGORIES,
+    # Credit conditions (codes 1-5 from Q28/Q29)
+    "Q28": _CREDIT_COND_LABELS,
+    "credit_cond_past_12m": _CREDIT_COND_LABELS,
+    "Q29": _CREDIT_COND_LABELS,
+    "credit_cond_12m": _CREDIT_COND_LABELS,
+    # Self-reported health (codes 1-5 from Q45b)
+    "Q45b": _HEALTH_LABELS,
+    "health": _HEALTH_LABELS,
+    # Coarse education (codes 1-4 from Educ4Enum)
+    "educ": _EDUC4_LABELS,
+    # Binary (0=No, 1=Yes) indicators
+    "working": _BINARY_LABELS,
+    "female": _BINARY_LABELS,
+    "hispanic": _BINARY_LABELS,
+    "black": _BINARY_LABELS,
+    "college": _BINARY_LABELS,
+    "owner": _BINARY_LABELS,
+    # hh_changed: 1 = composition changed since last survey; 0 = unchanged
+    "hh_changed": _BINARY_LABELS,
+    "looking_for_job": _BINARY_LABELS,
+    "self_employed": _BINARY_LABELS,
+    "couple": _BINARY_LABELS,
+    "spouse_working": _BINARY_LABELS,
+    "same_employer": _BINARY_LABELS,
+}
+
+
+def check_label_coverage(
+    columns: Iterable[str],
+    labels: dict[str, str],
+) -> tuple[set[str], set[str]]:
+    """Return columns without a label and label keys with no matching column.
+
+    Parameters
+    ----------
+    columns
+        Column names present in the output frame (and any index levels that
+        will be written as columns, e.g. when using ``write_index=True``).
+    labels
+        Variable label mapping to audit.
+
+    Returns
+    -------
+    unlabeled
+        Column names that have no entry in ``labels``.
+    phantom
+        Keys in ``labels`` that do not appear in ``columns``.
+
+    Notes
+    -----
+    ``phantom`` is non-empty when a label key refers to a column that is only
+    present in one output (e.g. ``Q47_rank`` only appears in ``df_full``).
+    Such entries are not errors by themselves; the caller decides which phantom
+    keys are acceptable.
+    """
+    column_set = set(columns)
+    label_set = set(labels)
+    return column_set - label_set, label_set - column_set
