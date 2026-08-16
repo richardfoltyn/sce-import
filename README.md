@@ -11,7 +11,7 @@
 - **Raw Data Concatenation**: Merges multiple historical and latest raw Excel microdata files (e.g., `FRBNY-SCE-Public-Microdata-Complete-13-16.xlsx`, `FRBNY-SCE-Public-Microdata-Complete-17-19.xlsx`, and `frbny-sce-public-microdata-latest.xlsx`).
 - **Data Standardization**: Converts raw variables into standard representations, flips incorrect signs where decreases were coded as positive (e.g., in inflation/deflation rate responses), and maps categoricals.
 - **ACS Income Rank Integration**: Merges external household total income ranks computed from IPUMS ACS data.
-- **Multiple Export Formats**: Exports processed full datasets and reduced extracts to Pickle (zstd-compressed), Stata (`.dta`), Excel (`.xlsx`), and CSV (`.csv`).
+- **Multiple Export Formats**: Exports processed full datasets and reduced extracts to Zstandard-compressed Pickle (`.pkl.zst`), Stata (`.dta`), Excel (`.xlsx`), and CSV (`.csv`).
 - **Diagnostic Plotting**: Generates plots illustrating panel spell lengths, observation counts per survey wave, and longitudinal statistics (mean, median, IQR) for variables over waves.
 
 ## Requirements

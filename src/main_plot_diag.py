@@ -374,7 +374,7 @@ def main(econf: EnvConfig) -> None:
     econf
         Parsed environment configuration.
     """
-    fn = econf.datadir / "sce_extract.pkl.zstd"
+    fn = econf.datadir / "sce_extract.pkl.zst"
     df: pd.DataFrame = pd.read_pickle(fn)
 
     # Plot histogram of individual obs.

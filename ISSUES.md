@@ -607,7 +607,7 @@ tiled across waves.
 
 ---
 
-## [ ] SCE-011 — Make Pickle cache/output compression real rather than nominal
+## [x] SCE-011 — Make Pickle cache/output compression real rather than nominal
 
 **Priority:** P1  
 **Files:** `src/main.py` (cache and output paths around lines 134–143 and
@@ -652,6 +652,15 @@ cache consumes far more space than intended.
 - Existing mislabeled files cannot be mistaken for files in the new format.
 - Compression support is represented in `pyproject.toml`/`uv.lock` if an
   optional codec is required.
+
+### Completion notes
+
+- Cache, final-output, and diagnostic paths consistently use the pandas-recognized
+  `.pkl.zst` suffix, allowing pandas to infer Zstandard compression.
+- Writes use Pickle protocol 5 and pandas' default Zstandard compression level.
+  The required `zstandard` codec is declared as a direct project dependency.
+- The suffix change invalidates existing nominally compressed `.pkl.zstd` files,
+  ensuring that plain legacy Pickles cannot be mistaken for Zstandard streams.
 
 ---
 

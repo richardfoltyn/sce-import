@@ -22,8 +22,7 @@ from SCE.importer import merge_inc_rank, process_sce
 
 
 def md5sum(file_path: Path) -> str:
-    """
-    Compute the MD5 checksum of a file.
+    """Compute the MD5 checksum of a file.
 
     Parameters
     ----------
@@ -33,11 +32,11 @@ def md5sum(file_path: Path) -> str:
     Returns
     -------
     str
-        The MD5 checksum hex string.
+        MD5 checksum as a hexadecimal string.
     """
     hash_md5 = hashlib.md5()
-    with file_path.open("rb") as f:
-        for chunk in iter(lambda: f.read(4096 * 4), b""):
+    with file_path.open("rb") as file:
+        for chunk in iter(lambda: file.read(4096 * 4), b""):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
 
@@ -165,7 +164,7 @@ def main(econf: EnvConfig) -> None:
         path = econf.inputdir / file
 
         hsh = md5sum(path)
-        fn_cache = econf.cachedir / f"{hsh}.pkl.zstd"
+        fn_cache = econf.cachedir / f"{hsh}.pkl.zst"
         if fn_cache.is_file():
             logger.info(f"Reading cached file {fn_cache}")
             df = pd.read_pickle(fn_cache)
@@ -173,7 +172,7 @@ def main(econf: EnvConfig) -> None:
             logger.info(f"Reading in {path}")
             # Skip the first line which contains the license terms
             df = pd.read_excel(path, skiprows=1)
-            df.to_pickle(fn_cache)
+            df.to_pickle(fn_cache, protocol=5)
 
         logger.info(f"  Initial interview date: {df['survey_date'].dt.date.min()}")
         logger.info(f"  Final interview date:   {df['survey_date'].dt.date.max()}")
@@ -206,11 +205,11 @@ def main(econf: EnvConfig) -> None:
 
     # --- Store results ---
 
-    fn = econf.datadir / "sce_extract.pkl.zstd"
+    fn = econf.datadir / "sce_extract.pkl.zst"
     logger.info(f"Saving SCE extract to {fn}")
     df_extract.to_pickle(fn, protocol=5)
 
-    fn = econf.datadir / "sce_full.pkl.zstd"
+    fn = econf.datadir / "sce_full.pkl.zst"
     logger.info(f"Saving full SCE data to {fn}")
     df_full.to_pickle(fn, protocol=5)
 
