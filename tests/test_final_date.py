@@ -26,9 +26,7 @@ def _processed_frames() -> tuple[pd.DataFrame, pd.DataFrame]:
     )
     dates = pd.to_datetime(["2024-01-01", "2024-01-02", "2024-01-03"])
     df_full = pd.DataFrame({"date": dates, "Q47": [1, 2, 3]}, index=index)
-    df_extract = pd.DataFrame(
-        {"date": dates, "hh_inc_bin": [1, 2, 3]}, index=index
-    )
+    df_extract = pd.DataFrame({"date": dates, "hh_inc_bin": [1, 2, 3]}, index=index)
     return df_full, df_extract
 
 

@@ -226,7 +226,7 @@ def process_sce(
     # Merge questions Q8v2 and Q8v2part2
     varname = "Q8v2part2"
     df_full[varname] = df[varname]
-    # Check that sign was flipped in Q8v2part2
+    # Check that sign was flipped in Q8v2part2 (direction: 1=increase, 2=decrease)
     deflation = df["Q8v2"] == 2
     df_full[varname] = flip_negative(df_full[varname], deflation)
 
@@ -243,17 +243,11 @@ def process_sce(
     # Rescale to [0, 100] to be in line with all other prob responses
     df_extract["infl_1y_bin_prob_defl"] = df["Q9_probdeflation"] * 100.0
 
-    if decimals_percent is not None:
-        # Round to desired number of decimals
-        columns = list(df_extract.filter(regex="infl_1y_.*", axis=1).columns)
-        for col in columns:
-            df_extract[col] = df_extract[col].round(decimals_percent)
-
     # --- Q9b: Inflation/deflation between 24-36 months from now ---
     # Merge questions Q9bv2 and Q9bv2part2
     varname = "Q9bv2part2"
     df_full[varname] = df[varname]
-    # Check if sign needs to be flipped
+    # Check if sign needs to be flipped (direction: 1=increase, 2=decrease)
     deflation = df["Q9bv2"] == 2
     df_full[varname] = flip_negative(df_full[varname], deflation)
 
@@ -270,12 +264,6 @@ def process_sce(
     # Rescale to [0, 100] to be in line with all other prob responses
     df_extract["infl_3y_bin_prob_defl"] = df["Q9c_probdeflation"] * 100.0
 
-    if decimals_percent is not None:
-        # Round to desired number of decimals
-        columns = list(df_extract.filter(regex="infl_3y_.*", axis=1).columns)
-        for col in columns:
-            df_extract[col] = df_extract[col].round(decimals_percent)
-
     # --- Q1a: Inflation/deflation between 48-60 months from now ---
 
     if "Q1a" in df.columns:
@@ -283,17 +271,52 @@ def process_sce(
         varname = "Q1apart2"
         # Merge questions Q1a and Q1apart2
         df_full[varname] = df[varname]
-        # Check if sign needs to be flipped
+        # Check if sign needs to be flipped (direction: 1=increase, 2=decrease)
         deflation = df["Q1a"] == 2
         df_full[varname] = flip_negative(df_full[varname], deflation)
 
         df_extract["infl_5y"] = df_full[varname]
 
-        # Q9new2: inflation forecast bins, months 48-60 from interview.
+        # Preserve the seven available Q9new2 summaries in df_full under original names
+        q9new2_source_cols = [
+            "Q9new2_cent25",
+            "Q9new2_cent50",
+            "Q9new2_cent75",
+            "Q9new2_iqr",
+            "Q9new2_mean",
+            "Q9new2_probdeflation",
+            "Q9new2_var",
+        ]
+        q9new2_present = [col for col in q9new2_source_cols if col in df.columns]
+        df_full[q9new2_present] = df[q9new2_present]
+
+        # Preserve legacy bin columns in df_full if they exist
         cols_q9 = [f"Q9new2_bin{i}" for i in range(1, 11)]
-        # These columns are missing in later surveys
         columns = df.filter(items=cols_q9, axis=1).columns.to_list()
-        df_full[columns] = df[columns]
+        if columns:
+            df_full[columns] = df[columns]
+
+        # Expose five-year summaries in extract using names parallel to 1y/3y
+        if "Q9new2_mean" in df.columns:
+            df_extract["infl_5y_bin_mean"] = df["Q9new2_mean"]
+        if "Q9new2_var" in df.columns:
+            df_extract["infl_5y_bin_var"] = df["Q9new2_var"]
+        if "Q9new2_cent50" in df.columns:
+            df_extract["infl_5y_bin_median"] = df["Q9new2_cent50"]
+        if "Q9new2_iqr" in df.columns:
+            df_extract["infl_5y_bin_iqr"] = df["Q9new2_iqr"]
+        if "Q9new2_probdeflation" in df.columns:
+            # Rescale probability from [0, 1] to [0, 100] consistently
+            df_extract["infl_5y_bin_prob_defl"] = df["Q9new2_probdeflation"] * 100.0
+
+    # Centralized rounding for 1y, 3y, and 5y point forecasts and density statistics
+    if decimals_percent is not None:
+        # Match columns such as infl_1y, infl_1y_bin_mean, infl_3y, infl_5y_bin_var, etc.
+        round_cols = list(
+            df_extract.filter(regex=r"^infl_(1y|3y|5y)($|_)", axis=1).columns
+        )
+        for col in round_cols:
+            df_extract[col] = df_extract[col].round(decimals_percent)
 
     # --- Employment ---
 
@@ -773,17 +796,17 @@ def expand_income_rank_years(
     final_year = max(last_year, int(required.max()) if required.size else last_year)
     years = np.arange(first_year, final_year + 1)
     bins = np.sort(source["ibin"].unique())
-    grid = pd.MultiIndex.from_product(
-        [years, bins], names=["year", "ibin"]
-    ).to_frame(index=False)
+    grid = pd.MultiIndex.from_product([years, bins], names=["year", "ibin"]).to_frame(
+        index=False
+    )
 
     source["_source_year"] = source["year"]
     expanded = grid.merge(source, on=["year", "ibin"], how="left", validate="1:1")
     # Carry ranks down each bin separately because different income bins are not
     # economically interchangeable, even when their ACS year is the same.
-    expanded[["rank", "_source_year"]] = expanded.groupby(
-        "ibin", sort=False
-    )[["rank", "_source_year"]].ffill()
+    expanded[["rank", "_source_year"]] = expanded.groupby("ibin", sort=False)[
+        ["rank", "_source_year"]
+    ].ffill()
 
     missing = expanded[expanded["rank"].isna()][["year", "ibin"]]
     if not missing.empty:

@@ -120,9 +120,7 @@ def process_data(
     # Restrict both outputs before the ACS merge so a pinned sample cannot fail
     # because later, excluded survey months lack a corresponding rank year.
     if final_date is not None:
-        df_full, df_extract = restrict_to_final_date(
-            df_full, df_extract, final_date
-        )
+        df_full, df_extract = restrict_to_final_date(df_full, df_extract, final_date)
 
     # --- Merge HH income ranks from ACS ---
 

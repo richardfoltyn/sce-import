@@ -7,7 +7,6 @@ Variable labels mappings for original and processed SCE survey variables.
 Author: Richard Foltyn
 """
 
-
 VARIABLE_LABELS_ORIG: dict[str, str] = {
     "tenure": "Tenure on survey",
     "weight": "Sampling weight",
@@ -117,6 +116,11 @@ VARIABLE_LABELS: dict[str, str] = {
     "infl_1y": "Rate of inflation/deflation over next 12 months",
     "infl_3y": "Rate of inflation/deflation 24 to 36 months from now",
     "infl_5y": "Rate of inflation/deflation 48 to 60 months from now",
+    "infl_5y_bin_mean": "Mean of expected inflation rate 48 to 60 months from now",
+    "infl_5y_bin_var": "Variance of expected inflation rate 48 to 60 months from now",
+    "infl_5y_bin_median": "Median of expected inflation rate 48 to 60 months from now",
+    "infl_5y_bin_iqr": "IQR of expected inflation rate 48 to 60 months from now",
+    "infl_5y_bin_prob_defl": "Probability of deflation 48 to 60 months from now",
     "working": "Currently working?",
     "num_jobs": "Number of jobs",
     "self_employed": "Self-employed?",

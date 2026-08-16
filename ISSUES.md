@@ -418,7 +418,7 @@ interviews from July 2025 onward will make the normal import fail.
 
 ---
 
-## [ ] SCE-008 — Import five-year density summaries and apply percent rounding consistently
+## [x] SCE-008 — Import five-year density summaries and apply percent rounding consistently
 
 **Priority:** P1  
 **Files:** `src/SCE/importer.py` (inflation block around lines 129–201),
@@ -462,6 +462,14 @@ three-year, and 263 five-year point forecasts with more than two decimal places.
 - `decimals_percent=N` rounds every documented percent-valued point/statistic to
   `N` places at all horizons.
 - `decimals_percent=None` leaves source precision unchanged.
+
+### Completion notes
+
+- The seven available `Q9new2_*` summaries are stored in the full output under their original names, preserving the 25th and 75th percentiles.
+- Exposed five-year density fields in the extract using parallel names: `infl_5y_bin_mean`, `infl_5y_bin_var`, `infl_5y_bin_median`, `infl_5y_bin_iqr`, and `infl_5y_bin_prob_defl` (scaled to `[0, 100]` consistently).
+- Replaced separate rounding blocks with a centralized, regex-based rounding step that matches and rounds point forecasts and density statistics at 1y, 3y, and 5y horizons.
+- Added variable labels for all five new extract fields in `src/SCE/annotations.py`.
+- Verified changes with new in-memory unit tests in `tests/test_inflation_summaries.py` covering extraction, scaling, and rounding.
 
 ---
 

@@ -152,13 +152,9 @@ class EducationEnum(IntEnum):
                 "occupational programs)"
             ),
             cls.BACHELORS_DEGREE: "Bachelor’s Degree (For example: BA, BS)",
-            cls.MASTERS_DEGREE: (
-                "Master’s Degree (For example: MA, MBA, MS, MSW)"
-            ),
+            cls.MASTERS_DEGREE: ("Master’s Degree (For example: MA, MBA, MS, MSW)"),
             cls.DOCTORAL_DEGREE: "Doctoral Degree (For example: PhD)",
-            cls.PROFESSIONAL_DEGREE: (
-                "Professional Degree (For example: MD, JD, DDS)"
-            ),
+            cls.PROFESSIONAL_DEGREE: ("Professional Degree (For example: MD, JD, DDS)"),
             cls.OTHER: "Other",
         }
         return mapping[self]

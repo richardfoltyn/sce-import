@@ -53,9 +53,7 @@ def test_future_complete_mapping_remains_many_to_one_mergeable() -> None:
             "rank": [value / 100 for value in bins],
         }
     )
-    index = pd.MultiIndex.from_arrays(
-        [[101] * 11, bins], names=["userid", "wid"]
-    )
+    index = pd.MultiIndex.from_arrays([[101] * 11, bins], names=["userid", "wid"])
     sce = pd.DataFrame(
         {"date": pd.to_datetime(["2025-07-01"] * 11), "Q47": bins},
         index=index,
@@ -63,9 +61,7 @@ def test_future_complete_mapping_remains_many_to_one_mergeable() -> None:
 
     result = merge_inc_rank(sce, "Q47", ranks)
 
-    expected = pd.Series(
-        [float(value) for value in bins], index=index, name="Q47_rank"
-    )
+    expected = pd.Series([float(value) for value in bins], index=index, name="Q47_rank")
     pd.testing.assert_series_equal(result, expected, check_exact=False)
 
 
