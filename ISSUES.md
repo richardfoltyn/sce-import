@@ -90,7 +90,7 @@ though they are valid composition baselines for incumbent panel members.
 
 ---
 
-## [ ] SCE-002 — Recompute ACS income ranks after excluding IPUMS sentinel values and applying weights consistently
+## [x] SCE-002 — Recompute ACS income ranks after excluding IPUMS sentinel values and applying weights consistently
 
 **Priority:** P0  
 **Files:** `stata/main_ftotinc_IPUMS.do`,
@@ -147,6 +147,18 @@ mapping.
   monotonically with `ibin` within year.
 - The committed CSV is the output of the corrected script.
 - The Python merge still passes `validate="m:1"` for the regenerated table.
+
+### Completion notes
+
+- The Stata 19 regeneration excluded 2,404,414 adult records with IPUMS
+  `FTOTINC` sentinel codes, with unweighted counts reported separately for each
+  year in the Stata log.
+- The corrected mapping changed 175 of 187 year/bin ranks. The mean change was
+  +0.0117 (1.17 percentile points), with changes ranging from -0.013 to +0.032;
+  the largest was for 2008 bin 10, which moved from 0.892 to 0.924.
+- All 17 years have unique bins 1–11, ranks in `[0, 1]`, and strictly increasing
+  ranks within year. A synthetic merge covering every regenerated key passed
+  the importer's `validate="m:1"` constraint.
 
 ---
 

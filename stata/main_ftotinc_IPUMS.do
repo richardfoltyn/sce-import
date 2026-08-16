@@ -49,7 +49,18 @@ use "${DATAFILE}", clear
 keep if age >= 18
 // keep if age <= 80
 
-// Generate person-level family income ranks within each survey year
+// IPUMS codes 9,999,998 and 9,999,999 as missing total family income.
+// Report the unweighted records excluded from the rank calculation by year.
+generate byte ftotinc_sentinel = inrange(ftotinc, 9999998, 9999999)
+display "Excluded FTOTINC sentinel records by year:"
+tabulate year if ftotinc_sentinel
+
+recode ftotinc (9999998/9999999 = .)
+drop if missing(ftotinc)
+drop ftotinc_sentinel
+
+// Generate person-level family income ranks within each survey year using the
+// ACS person weights.
 by year, sort: cumul ftotinc [fw=perwt], generate(rank)
 
 summarize ftotinc, detail
@@ -58,12 +69,14 @@ summarize ftotinc [fw=perwt], detail
 // Force zero lower bound to fit into bins
 replace ftotinc = max(0, ftotinc)
 
+// Verify that no IPUMS missing-value sentinel reaches the SCE binning step.
+assert !inrange(ftotinc, 9999998, 9999999)
+
 // Discretize into bins which are the same as in the SCE
 egen lbound = cut(ftotinc), at(${FAM_INC_CUTS})
 
-// Compute median rank (within the family income distribution of each year)
-// for each bin
-collapse (median) rank, by(year lbound)
+// Compute the person-weighted median rank within each year and SCE income bin.
+collapse (median) rank [fw=perwt], by(year lbound)
 
 format %5.3f rank
 
