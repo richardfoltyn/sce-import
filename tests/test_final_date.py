@@ -8,7 +8,12 @@ import pytest
 
 from env import EnvConfig
 import main as main_module
-from main import process_data, restrict_to_final_date
+from main import (
+    process_data,
+    restrict_to_final_date,
+    summarize_sample,
+    summarize_spell_lengths,
+)
 
 
 def _processed_frames() -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -109,3 +114,51 @@ def test_final_date_cli_rejects_invalid_date(
         parser.parse_args(["--final-date", "2024-02-30"])
 
     assert "invalid date '2024-02-30'; expected YYYY-MM-DD" in capsys.readouterr().err
+
+
+def test_summarize_sample_logs_expected_metrics(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verify summarize_sample logs observations, individuals, dates, and non-missing counts."""
+    caplog.set_level("INFO", logger="SCE")
+    index = pd.MultiIndex.from_tuples(
+        [(101, 1), (101, 2), (202, 1)], names=["userid", "wid"]
+    )
+    dates = pd.to_datetime(["2024-01-01", "2024-01-02", "2024-01-03"])
+    df = pd.DataFrame(
+        {
+            "date": dates,
+            "var_a": [1.0, None, 3.0],
+            "var_b": [None, None, 2.0],
+        },
+        index=index,
+    )
+
+    summarize_sample(df, "full")
+
+    logs = caplog.text
+    assert "=" * 80 in logs
+    assert "Sample summary report (full)" in logs
+    assert "Number of observations: 3" in logs
+    assert "Number of individuals:  2" in logs
+    assert "First interview date:   2024-01-01" in logs
+    assert "Last interview date:    2024-01-03" in logs
+    assert "Number of variables:    3" in logs
+    assert "var_a  2" in logs
+    assert "var_b  1" in logs
+
+
+def test_summarize_spell_lengths_logs_expected_distribution(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Verify summarize_spell_lengths logs distribution of spell lengths with a fenced header."""
+    caplog.set_level("INFO", logger="SCE")
+    df = pd.DataFrame({"userid": [101, 101, 202]})
+
+    summarize_spell_lengths(df)
+
+    logs = caplog.text
+    assert "=" * 80 in logs
+    assert "Distribution of spell lengths" in logs
+    assert "  1  1" in logs
+    assert "  2  1" in logs

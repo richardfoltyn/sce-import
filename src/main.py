@@ -131,6 +131,82 @@ def apply_metadata(
     return df
 
 
+def summarize_sample(df: pd.DataFrame, name: str) -> None:
+    """Log sample summary statistics for a processed SCE dataset.
+
+    Parameters
+    ----------
+    df
+        Processed SCE DataFrame.
+    name
+        Name descriptor of the dataset (e.g., ``"full"`` or ``"extract"``).
+    """
+    logger = logging.getLogger("SCE")
+
+    n_obs = len(df)
+    if VARNAME_ID in df.index.names:
+        n_indiv = df.index.get_level_values(VARNAME_ID).nunique()
+    else:
+        n_indiv = df[VARNAME_ID].nunique()
+
+    min_date = pd.Timestamp(df["date"].min()).date()
+    max_date = pd.Timestamp(df["date"].max()).date()
+    n_vars = len(df.columns)
+
+    fence = "=" * 80
+    logger.info(fence)
+    logger.info(f"Sample summary report ({name})")
+    logger.info(fence)
+    logger.info(f"  Number of observations: {n_obs:,d}")
+    logger.info(f"  Number of individuals:  {n_indiv:,d}")
+    logger.info(f"  First interview date:   {min_date}")
+    logger.info(f"  Last interview date:    {max_date}")
+    logger.info(f"  Number of variables:    {n_vars:,d}")
+    logger.info("  Non-missing observations per variable:")
+
+    non_missing = df.count()
+    if not non_missing.empty:
+        max_var_len = max(len(str(var)) for var in non_missing.index)
+        max_count_len = max(len(f"{count:,d}") for count in non_missing.values)
+        for var_name, count in non_missing.items():
+            formatted_count = f"{count:,d}"
+            logger.info(
+                f"    {var_name!s:<{max_var_len}}  {formatted_count:>{max_count_len}}"
+            )
+
+
+def summarize_spell_lengths(df: pd.DataFrame) -> None:
+    """Log the distribution of spell lengths across individuals.
+
+    Parameters
+    ----------
+    df
+        SCE DataFrame containing panel identifiers.
+    """
+    logger = logging.getLogger("SCE")
+
+    if VARNAME_ID in df.index.names:
+        counts = df.groupby(level=VARNAME_ID).size()
+    else:
+        counts = df.groupby(VARNAME_ID).size()
+
+    df_obs = counts.value_counts().sort_index()
+
+    fence = "=" * 80
+    logger.info(fence)
+    logger.info("Distribution of spell lengths")
+    logger.info(fence)
+
+    if not df_obs.empty:
+        max_length_len = max(len(str(length)) for length in df_obs.index)
+        max_count_len = max(len(f"{count:,d}") for count in df_obs.values)
+        for length, count in df_obs.items():
+            formatted_count = f"{count:,d}"
+            logger.info(
+                f"  {length!s:>{max_length_len}}  {formatted_count:>{max_count_len}}"
+            )
+
+
 def process_data(
     df_orig: pd.DataFrame,
     df_ranks: pd.DataFrame | None = None,
@@ -247,12 +323,14 @@ def main(econf: EnvConfig) -> None:
     df_full = apply_metadata(df_full, VARIABLE_LABELS, VALUE_LABELS)
     df_extract = apply_metadata(df_extract, VARIABLE_LABELS, VALUE_LABELS)
 
+    # --- Sample summary report ---
+
+    summarize_sample(df_full, "full")
+    summarize_sample(df_extract, "extract")
+
     # --- Tabulate distribution of spell lengths ---
 
-    df_obs = df_orig.groupby(VARNAME_ID).size().value_counts().sort_index()
-    s = df_obs.to_string(header=True)
-    s = s.replace("\n", "\n\t")
-    logger.info(f"Distribution of spell lengths: \n\t{s}")
+    summarize_spell_lengths(df_orig)
 
     # --- Store results ---
 
