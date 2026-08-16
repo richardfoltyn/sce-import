@@ -3,12 +3,10 @@ Helper functions for working with pandas DataFrames and Series.
 
 - merge_if_na: Incrementally merge Series replacing missing values.
 - tile_const: Broadcast a constant value within groups across group observations.
-- try_cast: Attempt to cast variables to a target dtype, logging warnings on failure.
 
 Author: Richard Foltyn
 """
 
-import logging
 from typing import Any
 
 import pandas as pd
@@ -75,58 +73,6 @@ def tile_const(
 
     tiled = values.groupby(by).first().reindex(index, level=by)
     if dtype is not None:
-        tiled = try_cast(tiled, dtype)
+        tiled = tiled.astype(dtype)
 
     return tiled
-
-
-def try_cast(
-    values: pd.Series | pd.DataFrame,
-    dtype: Any,
-) -> pd.Series | pd.DataFrame:
-    """
-    Attempt to cast columns/values to a target dtype.
-
-    Emits warnings if values cannot be cast due to NA values.
-
-    Parameters
-    ----------
-    values
-        The pandas Series or DataFrame to cast.
-    dtype
-        The target data type.
-
-    Returns
-    -------
-    pd.Series or pd.DataFrame
-        The cast pandas Series or DataFrame.
-    """
-    logger = logging.getLogger("SCE")
-
-    dtype_name = getattr(dtype, "__name__", dtype)
-
-    if isinstance(values, pd.DataFrame):
-        for name in values.columns:
-            try:
-                values[name] = values[name].astype(dtype)
-            except ValueError:
-                n = values[name].isna().sum()
-                logger.warning(
-                    f"Failed to cast column {name} to {dtype_name} due to {n:,d} NA values."
-                )
-    else:
-        try:
-            values = values.astype(dtype)
-        except ValueError:
-            n = values.isna().sum()
-            name = getattr(values, "name", None)
-            if name:
-                logger.warning(
-                    f"Failed to cast {name} to {dtype_name} due to {n:,d} NA values."
-                )
-            else:
-                logger.warning(
-                    f"Failed to cast to {dtype_name} due to {n:,d} NA values."
-                )
-
-    return values

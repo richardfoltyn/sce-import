@@ -9,14 +9,15 @@ Module to import and process SCE survey data.
 Author: Richard Foltyn
 """
 
-from collections.abc import Iterable
+from collections.abc import Collection, Iterable
 import logging
 
 import numpy as np
 import pandas as pd
 
 from SCE.constants import VARNAME_ID, VARNAME_WID
-from SCE.pandas_helpers import merge_if_na, tile_const, try_cast
+from SCE.datatypes import NULLABLE_INT8_COLUMNS
+from SCE.pandas_helpers import merge_if_na, tile_const
 
 LOGGER_NAME: str = "SCE"
 
@@ -211,6 +212,58 @@ def propagate_household_composition(
     return composition.groupby(level=by, sort=False).ffill()
 
 
+def apply_sce_output_dtypes(
+    df: pd.DataFrame,
+    *,
+    int8_columns: Collection[str],
+) -> pd.DataFrame:
+    """Apply the stable dtype contract to one processed SCE output.
+
+    Parameters
+    ----------
+    df
+        Processed SCE data to cast.
+    int8_columns
+        Columns containing nullable categorical, binary, or small count values.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Copy of the data with stable output dtypes.
+
+    Notes
+    -----
+    Columns not identified as dates, categorical codes, or integral counts are
+    represented as ``float64``. This includes weights, probabilities,
+    percentages, ranks, durations that admit fractional responses, and other
+    measured quantities.
+    """
+    result = df.copy(deep=True)
+    index = result.index.to_frame(index=False).astype(
+        {VARNAME_ID: "int64", VARNAME_WID: "int64"}
+    )
+    result.index = pd.MultiIndex.from_frame(index)
+
+    dtypes: dict[str, str] = dict.fromkeys(result.columns, "float64")
+    dtypes["date"] = "datetime64[ns]"
+
+    int8_info = np.iinfo(np.int8)
+    for name in int8_columns:
+        if name not in result.columns:
+            continue
+        observed = result[name].dropna()
+        if observed.mod(1).ne(0).any():
+            raise ValueError(f"Column {name} contains non-integral values")
+        if observed.lt(int8_info.min).any() or observed.gt(int8_info.max).any():
+            raise ValueError(
+                f"Column {name} contains values outside the Int8 range "
+                f"[{int8_info.min}, {int8_info.max}]"
+            )
+        dtypes[name] = "Int8"
+
+    return result.astype(dtypes)
+
+
 def process_sce(
     df: pd.DataFrame,
     decimals_percent: int | None = None,
@@ -236,6 +289,8 @@ def process_sce(
     logging.getLogger(LOGGER_NAME)
 
     df = df.rename(columns={"date": VARNAME_WID, "survey_date": "date"})
+    # Panel identifiers are required by the SCE schema and never admit missing values.
+    df = df.astype({VARNAME_ID: "int64", VARNAME_WID: "int64"})
     df = df.set_index([VARNAME_ID, VARNAME_WID]).sort_index()
 
     # meta-variables to be copied directly
@@ -611,31 +666,32 @@ def process_sce(
     # --- Demographic questions (new respondents only) ---
 
     # Q32: Current age (only asked of now respondents)
-    df_full["Q32"] = tile_const(df["Q32"], VARNAME_ID, int)
+    # Age remains continuous until invalid raw responses are handled under SCE-013.
+    df_full["Q32"] = tile_const(df["Q32"], VARNAME_ID)
 
     # Broadcast age across all waves since it does not seem to be asked again.
     df_extract["age_init"] = df_full["Q32"]
 
     # Q33: gender: (1) Female (2) Male
-    df_full["Q33"] = tile_const(df["Q33"], VARNAME_ID, np.uint8)
+    df_full["Q33"] = tile_const(df["Q33"], VARNAME_ID, "Int8")
     female = df_full["Q33"].map({1: 1, 2: 0}, na_action="ignore")
     df_extract["female"] = female
 
     # Q34: Hispanic
-    df_full["Q34"] = tile_const(df["Q34"], VARNAME_ID, np.uint8)
+    df_full["Q34"] = tile_const(df["Q34"], VARNAME_ID, "Int8")
     hispanic = df_full["Q34"].map({1: 1, 2: 0}, na_action="ignore")
     df_extract["hispanic"] = hispanic
 
     # Q35 records race only at the initial interview. Preserve these sparse raw
     # responses in the full output and tile only descriptively named indicators.
     d = df.filter(regex=r"^Q35_\d+$", axis=1)
-    races = tile_const(d, VARNAME_ID, np.uint8)
+    races = tile_const(d, VARNAME_ID, "Int8")
     df_full = pd.concat((df_full, d), axis=1)
     df_full["black"] = races["Q35_2"]
     df_extract["black"] = races["Q35_2"]
 
     # Q36: Highest level of education
-    df_full["Q36"] = tile_const(df["Q36"], VARNAME_ID, np.uint8)
+    df_full["Q36"] = tile_const(df["Q36"], VARNAME_ID, "Int8")
     df_extract["college"] = np.where(
         df_full["Q36"].notna(), df_full["Q36"].isin((5, 6, 7, 8)), np.nan
     )
@@ -679,20 +735,20 @@ def process_sce(
 
     # Q45b: self-reported health
     df_full["Q45b"] = df["Q45b"]
-    df_extract["health"] = try_cast(df_full["Q45b"], np.uint8)
+    df_extract["health"] = df_full["Q45b"]
 
     # Q46: Financial decision making
-    df_full["Q46"] = tile_const(df["Q46"], VARNAME_ID, np.uint8)
+    df_full["Q46"] = tile_const(df["Q46"], VARNAME_ID, "Int8")
 
     # QRA1: Willingness to take financial risk
     if "QRA1" in df.columns:
-        df_full["QRA1"] = tile_const(df["QRA1"], VARNAME_ID, np.uint8)
+        df_full["QRA1"] = tile_const(df["QRA1"], VARNAME_ID, "Int8")
 
         df_extract["take_fin_risk"] = df_full["QRA1"]
 
     # QRA2: Willingness to take risk in daily activities
     if "QRA2" in df.columns:
-        df_full["QRA2"] = tile_const(df["QRA2"], VARNAME_ID, np.uint8)
+        df_full["QRA2"] = tile_const(df["QRA2"], VARNAME_ID, "Int8")
 
     # Q47: Total pre-tax family income during the past 12 months
     df_full["Q47"] = df["Q47"]
@@ -761,6 +817,14 @@ def process_sce(
     df_full = df_full.sort_index()
     df_extract = df_extract.sort_index()
 
+    df_full = apply_sce_output_dtypes(
+        df_full,
+        int8_columns=NULLABLE_INT8_COLUMNS,
+    )
+    df_extract = apply_sce_output_dtypes(
+        df_extract,
+        int8_columns=NULLABLE_INT8_COLUMNS,
+    )
     return df_full, df_extract
 
 

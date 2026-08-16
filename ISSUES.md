@@ -664,7 +664,7 @@ cache consumes far more space than intended.
 
 ---
 
-## [ ] SCE-012 — Define stable nullable dtypes instead of all-or-nothing NumPy casts
+## [x] SCE-012 — Define stable nullable dtypes instead of all-or-nothing NumPy casts
 
 **Priority:** P2  
 **Files:** `src/SCE/pandas_helpers.py` (`try_cast`),
@@ -701,6 +701,25 @@ unconstrained floats and produces noisy warnings for expected missingness.
 - Binary/category fields cannot silently acquire fractional values.
 - All supported export formats preserve values and missingness on a small
   representative frame.
+
+### Completion notes
+
+- Processed outputs now apply one explicit dtype contract: panel identifiers are
+  non-nullable `int64`, dates are `datetime64[ns]`, categorical, binary, and
+  small integral count values use nullable `Int8`, and measured quantities use
+  `float64`.
+- Age and jobless-duration responses remain measured quantities because the raw
+  data contain fractional responses; domain cleaning for implausible ages is
+  intentionally reserved for SCE-013.
+- Removed the warning-based `try_cast`. Group tiling now casts directly to the
+  requested nullable dtype without mutating its input, and expected missingness
+  no longer causes failed-cast warnings.
+- Cached-data validation produced 69 nullable integer fields in the 164-column
+  full output and 32 in the 77-column extract. Explicit range and integrality
+  checks run before conversion so values that cannot be represented as `Int8`
+  fail clearly rather than overflowing or truncating.
+- Representative Pickle, Stata, Excel, and CSV exports preserve values and
+  missingness; Pickle also preserves the exact nullable dtypes and index.
 
 ---
 
