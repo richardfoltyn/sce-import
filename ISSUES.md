@@ -418,7 +418,7 @@ interviews from July 2025 onward will make the normal import fail.
 
 ---
 
-## [x] SCE-008 — Import five-year density summaries and apply percent rounding consistently
+## [ ] SCE-008 — Import five-year density summaries and apply percent rounding consistently
 
 **Priority:** P1  
 **Files:** `src/SCE/importer.py` (inflation block around lines 129–201),
@@ -448,7 +448,9 @@ three-year, and 263 five-year point forecasts with more than two decimal places.
    naming parallel to the one- and three-year fields.
 2. Scale `Q9new2_probdeflation` from `[0, 1]` to `[0, 100]` consistently.
 3. Centralize horizon processing/rounding so 1y, 3y, and 5y point forecasts and
-   density statistics follow one rule.
+   density statistics follow one rule in both outputs. When
+   `decimals_percent=N`, round the source-named fields in the full output and
+   their descriptive counterparts in the extract after any unit scaling.
 4. Preserve 25th/75th percentiles in full output if “full” is intended to retain
    source summaries; at minimum expose mean, variance, median, IQR, and
    deflation probability in the extract.
@@ -460,7 +462,9 @@ three-year, and 263 five-year point forecasts with more than two decimal places.
   transformed; none is silently ignored.
 - Five-year extract names parallel the 1y/3y naming scheme.
 - `decimals_percent=N` rounds every documented percent-valued point/statistic to
-  `N` places at all horizons.
+  `N` places in both the full output and extract at all horizons.
+- Corresponding normalized point forecasts in the full output and extract agree
+  after rounding.
 - `decimals_percent=None` leaves source precision unchanged.
 
 ### Completion notes
@@ -471,9 +475,16 @@ three-year, and 263 five-year point forecasts with more than two decimal places.
 - Added variable labels for all five new extract fields in `src/SCE/annotations.py`.
 - Verified changes with new in-memory unit tests in `tests/test_inflation_summaries.py` covering extraction, scaling, and rounding.
 
+### Remaining work
+
+- The centralized rounding step currently rounds only the extract. Apply the
+  same configured rounding to the corresponding full-output inflation fields.
+  With `decimals_percent=2`, the existing generated full/extract outputs differ
+  for 3,410 one-year, 2,733 three-year, and 263 five-year point forecasts.
+
 ---
 
-## [x] SCE-009 — Preserve conservative sign-convention detection and use normalized values in every extract
+## [ ] SCE-009 — Preserve conservative sign-convention detection and use normalized values in every extract
 
 **Priority:** P2
 **Files:** `src/SCE/importer.py` (`flip_negative`, lines 21–63; sign-processing
@@ -519,7 +530,8 @@ future source would then produce inconsistent full and extract outputs.
    Leave a consistently signed Series unchanged; leave every value in a
    mixed/ambiguous Series unchanged.
 4. Make all extracts, including `house_price_change`, read from the processed
-   `df_full` Series.
+   `df_full` Series, and apply configured rounding consistently to corresponding
+   full/extract fields so the stored values remain equal.
 5. Log the inferred convention and separate counts for observed direction,
    missing direction, and contradictory/mixed evidence without describing
    missing direction as an explicit positive-direction response.
@@ -534,7 +546,8 @@ future source would then produce inconsistent full and extract outputs.
 - Values with missing direction are preserved and are not counted as explicit
   non-decrease contradictions; the current `Q1apart2` data no longer produce the
   misleading warning.
-- Every full/extract pair is equal after any normalization.
+- Every corresponding full/extract point forecast is equal after sign
+  normalization and any configured rounding.
 - Focused fixtures cover signed, uniformly unsigned, mixed-convention, zero,
   missing value, and missing-direction input.
 
@@ -551,6 +564,12 @@ future source would then produce inconsistent full and extract outputs.
   contradiction warning.
 - `house_price_change` now reads from the normalized full Series. Regression
   fixtures verify conservative convention handling and full/extract equality.
+
+### Remaining work
+
+- Sign normalization itself is complete. Final equality for the inflation
+  full/extract pairs remains blocked by the extract-only rounding described in
+  SCE-008.
 
 ---
 
@@ -625,11 +644,11 @@ cache consumes far more space than intended.
 ### Task
 
 1. Choose one supported format:
-   - use a recognized `.pkl.zst` suffix plus an explicit Zstandard compression
-     setting and declared dependency, or
+   - use a recognized `.pkl.zst` suffix with a declared Zstandard dependency, or
    - restore `.pkl.xz` and the built-in xz path.
-2. Pass `compression=` explicitly on both reads and writes instead of relying on
-   suffix inference.
+   Pandas suffix-based compression inference is acceptable.
+2. Use the chosen supported suffix consistently on cache, final-output, and
+   diagnostic reads and writes; an explicit `compression=` argument is optional.
 3. Update the diagnostic reader and README to the same path/format.
 4. Define migration behavior so existing uncompressed `.pkl.zstd` files are not
    accidentally opened as compressed streams. A new suffix is the simplest
@@ -715,7 +734,7 @@ unconstrained floats and produces noisy warnings for expected missingness.
 
 ---
 
-## [x] SCE-013 — Verify categorical mappings and clean impossible response-domain values
+## [ ] SCE-013 — Verify categorical mappings and clean impossible response-domain values
 
 **Priority:** P2  
 **Files:** `src/SCE/importer.py`, `src/SCE/enums.py`,
@@ -760,9 +779,24 @@ specific codebook version. There are also unresolved domain inconsistencies:
 - Out-of-domain age handling is documented and counted.
 - Mapping fixtures cover every allowed source code.
 
+### Completion notes
+
+- The currently implemented recodes agree with `QUESTIONNAIRE.txt`, education
+  code 9 is missing in both derived education fields, and out-of-domain ages are
+  cleared and logged before panel propagation.
+
+### Remaining work
+
+- Replace anonymous production mapping dictionaries with named constants,
+  enums, or a versioned mapping table that the transformations actually use.
+- Make mapping tests exercise those production mappings or domain processors
+  rather than duplicating mapping literals in the tests.
+- Complete fixtures for all allowed employment and numerical-literacy codes and
+  document the questionnaire/codebook revision used for verification.
+
 ---
 
-## [x] SCE-014 — Repair and actually use variable/value metadata
+## [ ] SCE-014 — Repair and actually use variable/value metadata
 
 **Priority:** P2  
 **Files:** `src/SCE/annotations.py`, `src/SCE/enums.py`, `src/main.py`,
@@ -783,19 +817,21 @@ and has the opposite meaning from the derived field.
 
 ### Task
 
-1. Make label keys exactly match the declared full/extract schemas.
+1. Make labels cover the actual full and extract output fields, generating
+   labels for repeated source-field families where appropriate.
 2. Add labels for identifiers, dates, income ranks, density summaries, and all
    fields introduced by other tasks.
 3. Correct spelling and semantic direction, especially `hh_changed`.
 4. Pass supported variable/value labels to `DataFrame.to_stata` and define where
    metadata lives for Pickle (for example `DataFrame.attrs`).
 5. Either apply enum-derived value labels or remove the inaccurate README claim.
-6. Add a metadata coverage check against each output schema.
+6. Run a metadata coverage check against each actual processed output (or an
+   authoritative column list derived from those outputs).
 
 ### Acceptance criteria
 
-- Every extract field has exactly one variable label.
-- No label key refers to a nonexistent output field.
+- Every full-output and extract field has exactly one applicable variable label.
+- No applied label key refers to a nonexistent output field.
 - Stata output exposes the intended variable/value labels on a small fixture.
 - Labels agree with coding direction and units (`[0, 1]` versus `[0, 100]`).
 
@@ -825,11 +861,21 @@ and has the opposite meaning from the derived field.
   and value labels, and `apply_metadata` attrs population and non-mutation.
 - All 72 tests pass; `uv run ruff check` and `uv run ty check` both pass.
 
+### Remaining work
+
+- The extract is fully labeled, but the current full Pickle metadata contains
+  labels for only `userid`, `wid`, `date`, `tenure`, `weight`, and `Q47_rank`.
+  Apply `VARIABLE_LABELS_ORIG` (including generated labels for source-field
+  families) so all full-output fields receive variable labels.
+- Exercise the coverage check against the actual full and extract outputs rather
+  than only a manually maintained extract-column fixture.
+
 ---
 
 ## [ ] SCE-015 — Declare and audit the “full” and extract output schemas
 
 **Priority:** P2  
+**Status:** Intentionally deferred and excluded from the current scope.
 **Files:** `src/SCE/importer.py`, a new schema module or data file,
 `README.md`
 
@@ -903,8 +949,8 @@ second overwrites the first.
    `q1 - 100*IQR`/`q3 + 100*IQR` cutoffs.
 3. Fix the Stata legend macro and include college status in graph filenames, or
    produce one combined graph.
-4. Add tiny deterministic diagnostic fixtures. Do not run Stata without
-   approval.
+4. Unit tests for these diagnostic-only calculations are explicitly waived;
+   static inspection is sufficient. Do not run Stata without approval.
 
 ### Acceptance criteria
 
@@ -924,12 +970,13 @@ second overwrites the first.
 - The Stata legend macro typo `byblb` was corrected to `bylbl`.
 - The college-loop graph export filename now includes the `college` iteration value
   so the `college=1` output does not overwrite `college=0`.
-- No unit tests were added (the fixes are trivial, visible, and the plotting
-  functions are tightly coupled to the pydynopt `plot_grid` callback API).
+- Per maintainer instruction, no unit tests were added for this issue. The fixes
+  are diagnostic-only, visible by static inspection, and tightly coupled to the
+  pydynopt `plot_grid` callback API.
 
 ---
 
-## [x] SCE-017 — Make expensive export formats selectable
+## [ ] SCE-017 — Make expensive export formats selectable
 
 **Priority:** P2  
 **Files:** `src/main.py`, `src/env.py`, `README.md`
@@ -945,20 +992,21 @@ iteration unnecessarily slow.
 ### Task
 
 1. Add a CLI option such as `--formats pickle,stata,excel,csv`, with a documented
-   backward-compatible default.
-2. Split each exporter into a small function and execute only selected formats.
-3. Log skipped and written outputs, including elapsed time and final size.
-4. Ensure diagnostics can locate the configured canonical Pickle output.
-5. Consider writing expensive outputs atomically so failed exports do not leave
-   apparently complete partial files.
+   default.
+2. Guard the existing export blocks so only selected formats execute. Separate
+   exporter functions are not required.
+3. Log selected, skipped, and written output paths. Timing and final-size
+   reporting are not required.
+4. Ensure diagnostics can locate the canonical Pickle output.
 
 ### Acceptance criteria
 
 - A Pickle-only run does not invoke Stata/Excel/CSV writers.
 - The default behavior is explicitly documented.
 - Invalid format names fail during argument parsing.
-- Export selection is verified with a tiny DataFrame; validating this task does
-  not require running the full SCE import.
+- Parser fixtures and direct inspection of the export guards are sufficient;
+  separate exporter functions, timing/size logging, atomic writes, and
+  end-to-end writer mocks are outside the simplified scope.
 
 ### Completion notes
 
@@ -977,11 +1025,18 @@ iteration unnecessarily slow.
   invalid, default, case-insensitive) on synthetic data; no raw SCE workbooks
   or production exports are needed.
 
+### Remaining work
+
+- Correct the malformed all-formats example in `README.md`.
+- Remove the unsupported `--formats all` suggestion from
+  `src/main_plot_diag.py` (or explicitly add `all` as a supported alias).
+
 ---
 
 ## [ ] SCE-018 — Emit a reproducibility manifest for every completed import
 
 **Priority:** P2  
+**Status:** Intentionally deferred and excluded from the current scope.
 **Files:** `src/main.py`, optionally a new provenance module, `README.md`
 
 ### Problem
