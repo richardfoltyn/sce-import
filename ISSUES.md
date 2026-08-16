@@ -162,7 +162,7 @@ mapping.
 
 ---
 
-## [ ] SCE-003 — Preserve missingness in conditional binary indicators
+## [x] SCE-003 — Preserve missingness in conditional binary indicators
 
 **Priority:** P1  
 **Files:** `src/SCE/importer.py` (derived indicators around lines 210, 232–234,
@@ -206,9 +206,19 @@ source indicators are missing.
 - All-missing component rows produce missing aggregate indicators.
 - Focused fixtures cover yes, no, and not-applicable states.
 
+### Completion notes
+
+- Conditional binary outputs now use pandas nullable `Int8` values (`0`, `1`,
+  and `pd.NA`), which round-tripped successfully through the Stata writer.
+- Cached-data validation covered all 180,268 observations. The existing
+  fully-observed `working` results were unchanged, while only the 6,322 observed
+  `Q15` and 156,559 observed `D1` responses receive non-missing derived values.
+- Focused fixtures cover explicit yes/no codes, partial multi-response rows, and
+  wholly missing conditional responses.
+
 ---
 
-## [ ] SCE-004 — Restore the missing `spouse_working` extract variable
+## [x] SCE-004 — Restore the missing `spouse_working` extract variable
 
 **Priority:** P1  
 **Files:** `src/SCE/importer.py` (lines 575–586),
@@ -246,6 +256,16 @@ After initial and repeat responses are merged, `df_full["HH2_1"]` and
 - Full-time/part-time maps to one, observed non-working statuses map to zero,
   and all-missing statuses remain missing.
 - No references to `HH_1` or `HH_2` remain.
+
+### Completion notes
+
+- `spouse_working` is derived from the merged `df_full` `HH2_*` fields, so both
+  initial `HH2_*` and repeat `DHH2_*` responses contribute.
+- Per the questionnaire, full-time, part-time, and self-employment categories
+  (`HH2_1`--`HH2_3`) map to one; observed categories `HH2_4`--`HH2_11` map to
+  zero, and wholly missing responses remain missing.
+- Cached-data validation produced 98,382 non-missing `spouse_working` values and
+  confirmed coverage of both initial and repeat responses.
 
 ---
 

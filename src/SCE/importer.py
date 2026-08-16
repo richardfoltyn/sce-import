@@ -65,6 +65,62 @@ def flip_negative(s: pd.Series, negative: pd.Series) -> pd.Series:
     return s
 
 
+def recode_binary_response(
+    values: pd.Series,
+    *,
+    true_code: int,
+    false_code: int,
+) -> pd.Series:
+    """Recode an explicitly coded binary response without losing missingness.
+
+    Parameters
+    ----------
+    values
+        Source responses containing explicit true and false codes.
+    true_code
+        Source code to map to one.
+    false_code
+        Source code to map to zero.
+
+    Returns
+    -------
+    pd.Series
+        Responses represented as nullable 0/1 integers. Missing source values
+        remain ``pd.NA``.
+    """
+    return values.map({true_code: 1, false_code: 0}).astype(pd.Int8Dtype())
+
+
+def any_selected_indicator(
+    indicators: pd.DataFrame,
+    *,
+    selected_columns: list[str] | None = None,
+) -> pd.Series:
+    """Aggregate selected categories from a multi-response question.
+
+    Parameters
+    ----------
+    indicators
+        Indicator columns for all categories in a multi-response question.
+    selected_columns
+        Columns whose selection should produce one. If omitted, selection of
+        any supplied column produces one.
+
+    Returns
+    -------
+    pd.Series
+        Nullable 0/1 integers. A row is missing only when all response
+        indicators are missing; an observed row without a selected category is
+        zero.
+    """
+    selected = indicators
+    if selected_columns is not None:
+        selected = indicators[selected_columns]
+
+    result = selected.eq(1).any(axis=1)
+    return result.mask(indicators.isna().all(axis=1)).astype(pd.Int8Dtype())
+
+
 def propagate_household_composition(
     initial: pd.DataFrame,
     updates: pd.DataFrame,
@@ -240,12 +296,14 @@ def process_sce(
 
     # --- Employment ---
 
-    # Coded as indicator variable as multiple responses are permitted
-    d = df.filter(regex="Q10_.*", axis=1)
+    # Q10 stores each permitted employment status as a separate 0/1 indicator.
+    d = df.filter(regex=r"^Q10_\d+$", axis=1)
     columns = d.columns.to_list()
     df_full[columns] = df[columns]
 
-    df_extract["working"] = (df[["Q10_1", "Q10_2"]] == 1).any(axis=1).astype(np.uint8)
+    df_extract["working"] = any_selected_indicator(
+        d, selected_columns=["Q10_1", "Q10_2"]
+    )
 
     # Q11: Current number of jobs, conditional on working, temp layoff, or on leave
     df_full["Q11"] = df["Q11"]
@@ -267,9 +325,12 @@ def process_sce(
     df_full["Q14new"] = df["Q14new"]
     df_extract["prob_leave_job"] = df_full["Q14new"]
 
-    # Q15: Looking for job? Yes = 1, No = 2
+    # Q15 is asked only of respondents who are not working but would like to;
+    # structural missingness therefore must not be interpreted as "No."
     df_full["Q15"] = df["Q15"]
-    df_extract["looking_for_job"] = (df_full["Q15"] == 1).astype(int)
+    df_extract["looking_for_job"] = recode_binary_response(
+        df_full["Q15"], true_code=1, false_code=2
+    )
 
     # Q16: How long have you been unemployed (in months)
     df_full["Q16"] = df["Q16"]
@@ -523,8 +584,9 @@ def process_sce(
     # NOTE: Will be updated for later waves below
     df_full["Q38"] = df["Q38"]
 
-    # HH2: Spouses employment situation?
-    d = df.filter(regex=r"^HH2_[\d]+$", axis=1)
+    # HH2 records each spouse/partner employment status as a separate indicator.
+    spouse_status_columns = [f"HH2_{i}" for i in range(1, 12)]
+    d = df.filter(items=spouse_status_columns, axis=1)
     if d.shape[1] > 0:
         df_full = pd.concat((df_full, d), axis=1)
 
@@ -570,10 +632,12 @@ def process_sce(
 
     # --- Questions to repeat respondents ---
 
-    # D1 (repeat respondents only): household changed?
+    # D1 is asked only at repeat interviews: 1 means unchanged and 2 changed.
+    # Missing initial-interview responses must remain distinct from "unchanged."
     df_full["D1"] = df["D1"]
-    hh_changed = df_full["D1"] == 2
-    df_extract["hh_changed"] = hh_changed.astype(np.uint8)
+    df_extract["hh_changed"] = recode_binary_response(
+        df_full["D1"], true_code=2, false_code=1
+    )
 
     # D2new is a complete replacement state when observed. In particular, 2013
     # incumbent-panel baselines contain valid D2new responses with missing D1.
@@ -606,17 +670,21 @@ def process_sce(
     couple = df_full["Q38"].map({1: 1, 2: 0}, na_action="ignore")
     df_extract["couple"] = couple
 
-    # dHH2: Spouses employment situation?
-    d = df.filter(regex=r"^DHH2_[\d]+$", axis=1)
+    # DHH2 repeats the HH2 multi-response question; merge updates into the
+    # canonical HH2 fields before deriving spouse employment.
+    d = df.filter(regex=r"^DHH2_\d+$", axis=1)
     for name, col in d.items():
-        # Remove leading "D"
+        # Remove the leading "D" to align repeat responses with HH2 fields.
         if isinstance(name, str):
             dst = name[1:]
             df_full[dst] = merge_if_na(df_full[dst], col)
 
-    if "HH_1" in df_full.columns:
-        df_extract["spouse_working"] = (
-            (df[["HH_1", "HH_2"]] == 1).any(axis=1).astype(np.uint8)
+    if spouse_status_columns[0] in df_full.columns:
+        # Full-time, part-time, and self-employment are HH2 categories 1--3;
+        # observed categories 4--11 are non-working statuses.
+        df_extract["spouse_working"] = any_selected_indicator(
+            df_full[spouse_status_columns],
+            selected_columns=spouse_status_columns[:3],
         )
 
     # D6: Current total pre-tax family income (11 income bins)
