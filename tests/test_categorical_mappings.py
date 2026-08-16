@@ -1,190 +1,147 @@
-"""Tests for categorical mappings and response-domain cleaning (SCE-013)."""
+"""Tests for authoritative categorical recodes and response-domain cleaning."""
 
 import numpy as np
 import pandas as pd
 import pytest
 
-from SCE.importer import AGE_MAX, AGE_MIN, clean_age
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _map(s: pd.Series, mapping: dict) -> pd.Series:
-    """Apply a mapping dict with na_action='ignore', matching importer logic."""
-    return s.map(mapping, na_action="ignore")
-
-
-# ---------------------------------------------------------------------------
-# Q12new → self_employed: (1) Work for someone else, (2) Self-employed
-# ---------------------------------------------------------------------------
-
-
-def test_self_employed_for_someone_else() -> None:
-    """Code 1 maps to 0 (not self-employed)."""
-    s = pd.Series([1], dtype="Float64")
-    result = _map(s, {1: 0, 2: 1})
-    assert result.iloc[0] == 0
+from SCE.codings import (
+    COLLEGE_RECODE,
+    COUPLE_RECODE,
+    FEMALE_RECODE,
+    HISPANIC_RECODE,
+    OWNER_RECODE,
+)
+from SCE.enums import (
+    EducationEnum,
+    GenderEnum,
+    ResidenceOwnershipEnum,
+    YesNoEnum,
+)
+from SCE.importer import (
+    AGE_MAX,
+    AGE_MIN,
+    _process_demographics,
+    clean_age,
+    recode_binary_response,
+)
 
 
-def test_self_employed_self_employed() -> None:
-    """Code 2 maps to 1 (self-employed)."""
-    s = pd.Series([2], dtype="Float64")
-    result = _map(s, {1: 0, 2: 1})
-    assert result.iloc[0] == 1
+def _demographics_frame(**responses: float) -> pd.DataFrame:
+    """Create one initial-interview row for the demographics processor."""
+    index = pd.MultiIndex.from_tuples([(101, 202401)], names=["userid", "wid"])
+    data: dict[str, list[float]] = {
+        "Q32": [40.0],
+        "Q33": [np.nan],
+        "Q34": [np.nan],
+        "Q36": [np.nan],
+        "Q37": [np.nan],
+        **{f"Q35_{code}": [0.0] for code in range(1, 7)},
+    }
+    for name, value in responses.items():
+        data[name] = [value]
+    return pd.DataFrame(data, index=index)
 
 
-def test_self_employed_missing_passthrough() -> None:
-    """Missing responses remain missing (na_action='ignore')."""
-    s = pd.Series([pd.NA], dtype="Float64")
-    result = _map(s, {1: 0, 2: 1})
-    assert result.isna().all()
+@pytest.mark.parametrize(
+    "code,expected",
+    [(GenderEnum.FEMALE, 1), (GenderEnum.MALE, 0)],
+)
+def test_gender_codes_are_applied_by_demographics_processor(
+    code: GenderEnum, expected: int
+) -> None:
+    """Exercise every allowed Q33 code through the production processor."""
+    _, result = _process_demographics(_demographics_frame(Q33=float(code)))
+    assert result["female"].iloc[0] == expected
 
 
-# ---------------------------------------------------------------------------
-# Q33 → female: (1) Female, (2) Male
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("code,expected", [(1, 1), (2, 0)])
-def test_female_mapping(code: int, expected: int) -> None:
-    """Each Q33 code maps to the correct binary indicator."""
-    s = pd.Series([code], dtype="Float64")
-    result = _map(s, {1: 1, 2: 0})
-    assert result.iloc[0] == expected
-
-
-def test_female_missing_passthrough() -> None:
-    s = pd.Series([pd.NA], dtype="Float64")
-    assert _map(s, {1: 1, 2: 0}).isna().all()
-
-
-# ---------------------------------------------------------------------------
-# Q34 → hispanic: (1) Yes, (2) No
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("code,expected", [(1, 1), (2, 0)])
-def test_hispanic_mapping(code: int, expected: int) -> None:
-    """Each Q34 code maps to the correct binary indicator."""
-    s = pd.Series([code], dtype="Float64")
-    result = _map(s, {1: 1, 2: 0})
-    assert result.iloc[0] == expected
-
-
-def test_hispanic_missing_passthrough() -> None:
-    s = pd.Series([pd.NA], dtype="Float64")
-    assert _map(s, {1: 1, 2: 0}).isna().all()
-
-
-# ---------------------------------------------------------------------------
-# Q38/DQ38 → couple: (1) Yes, (2) No
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize("code,expected", [(1, 1), (2, 0)])
-def test_couple_mapping(code: int, expected: int) -> None:
-    """Each Q38 code maps to the correct binary indicator."""
-    s = pd.Series([code], dtype="Float64")
-    result = _map(s, {1: 1, 2: 0})
-    assert result.iloc[0] == expected
-
-
-def test_couple_missing_passthrough() -> None:
-    s = pd.Series([pd.NA], dtype="Float64")
-    assert _map(s, {1: 1, 2: 0}).isna().all()
-
-
-# ---------------------------------------------------------------------------
-# Q43 → owner: (1) Own→1, (2) Rent→0, (3) Other→missing
-# ---------------------------------------------------------------------------
-
-
-def test_owner_own() -> None:
-    """Code 1 (Own) maps to 1."""
-    s = pd.Series([1], dtype="Float64")
-    assert _map(s, {1: 1, 2: 0}).iloc[0] == 1
-
-
-def test_owner_rent() -> None:
-    """Code 2 (Rent) maps to 0."""
-    s = pd.Series([2], dtype="Float64")
-    assert _map(s, {1: 1, 2: 0}).iloc[0] == 0
-
-
-def test_owner_other_is_missing() -> None:
-    """Code 3 (Other) must be missing, not 0.
-
-    'Other (please specify)' is an unknown arrangement; treating it as renting
-    would be incorrect.
-    """
-    s = pd.Series([3], dtype="Float64")
-    # Code 3 is intentionally absent from the mapping so it falls through
-    # to NaN via na_action='ignore'.
-    result = _map(s, {1: 1, 2: 0})
-    assert result.isna().all()
-
-
-def test_owner_missing_passthrough() -> None:
-    s = pd.Series([pd.NA], dtype="Float64")
-    assert _map(s, {1: 1, 2: 0}).isna().all()
-
-
-# ---------------------------------------------------------------------------
-# Q36 → college (binary) and educ (4-category)
-# ---------------------------------------------------------------------------
-
-# Mapping constants mirroring importer.py
-_COLLEGE_MAP = {1: 0, 2: 0, 3: 0, 4: 0, 5: 1, 6: 1, 7: 1, 8: 1}
-_EDUC_MAP = {1: 1, 2: 2, 3: 3, 4: 3, 5: 4, 6: 4, 7: 4, 8: 4}
+@pytest.mark.parametrize(
+    "code,expected",
+    [(YesNoEnum.YES, 1), (YesNoEnum.NO, 0)],
+)
+def test_hispanic_codes_are_applied_by_demographics_processor(
+    code: YesNoEnum, expected: int
+) -> None:
+    """Exercise every allowed Q34 code through the production processor."""
+    _, result = _process_demographics(_demographics_frame(Q34=float(code)))
+    assert result["hispanic"].iloc[0] == expected
 
 
 @pytest.mark.parametrize(
     "code,expected_college,expected_educ",
     [
-        (1, 0, 1),  # Less than high school → non-college, LT HS
-        (2, 0, 2),  # High school diploma → non-college, HS
-        (3, 0, 3),  # Some college no degree → non-college, some college
-        (4, 0, 3),  # Associate's degree → non-college, some college
-        (5, 1, 4),  # Bachelor's → college, college degree
-        (6, 1, 4),  # Master's → college, college degree
-        (7, 1, 4),  # Doctoral → college, college degree
-        (8, 1, 4),  # Professional → college, college degree
+        (EducationEnum.LT_HS, 0, 1),
+        (EducationEnum.HS, 0, 2),
+        (EducationEnum.SOME_COLLEGE, 0, 3),
+        (EducationEnum.ASSOCIATE_DEGREE, 0, 3),
+        (EducationEnum.BACHELORS_DEGREE, 1, 4),
+        (EducationEnum.MASTERS_DEGREE, 1, 4),
+        (EducationEnum.DOCTORAL_DEGREE, 1, 4),
+        (EducationEnum.PROFESSIONAL_DEGREE, 1, 4),
+        (EducationEnum.OTHER, None, None),
     ],
 )
-def test_education_mapping(
-    code: int, expected_college: int, expected_educ: int
+def test_education_codes_are_applied_consistently(
+    code: EducationEnum,
+    expected_college: int | None,
+    expected_educ: int | None,
 ) -> None:
-    """Every valid Q36 code maps consistently in both derived variables."""
-    s = pd.Series([code], dtype="Float64")
-    assert _map(s, _COLLEGE_MAP).iloc[0] == expected_college
-    assert _map(s, _EDUC_MAP).iloc[0] == expected_educ
+    """Exercise every Q36 code, including unclassifiable Other responses."""
+    _, result = _process_demographics(_demographics_frame(Q36=float(code)))
+
+    if expected_college is None:
+        assert pd.isna(result["college"].iloc[0])
+        assert pd.isna(result["educ"].iloc[0])
+    else:
+        assert result["college"].iloc[0] == expected_college
+        assert result["educ"].iloc[0] == expected_educ
 
 
-def test_education_code9_college_is_missing() -> None:
-    """Code 9 (Other) yields missing in 'college', not 0.
+@pytest.mark.parametrize(
+    "code,expected",
+    [
+        (ResidenceOwnershipEnum.OWN, 1),
+        (ResidenceOwnershipEnum.RENT, 0),
+        (ResidenceOwnershipEnum.OTHER, None),
+    ],
+)
+def test_ownership_codes_have_explicit_other_policy(
+    code: ResidenceOwnershipEnum, expected: int | None
+) -> None:
+    """Verify every Q43 code uses the production ownership recode."""
+    values = pd.Series([int(code)], dtype="Int8")
+    result = recode_binary_response(values, coding=OWNER_RECODE)
+    if expected is None:
+        assert result.isna().all()
+    else:
+        assert result.iloc[0] == expected
 
-    The respondent's actual qualification is unknown; treating it as
-    non-college would misclassify the observation.
-    """
-    s = pd.Series([9], dtype="Float64")
-    result = _map(s, _COLLEGE_MAP)
-    assert result.isna().all()
+
+@pytest.mark.parametrize(
+    "code,expected",
+    [(YesNoEnum.YES, 1), (YesNoEnum.NO, 0)],
+)
+def test_couple_codes_use_production_recode(
+    code: YesNoEnum, expected: int
+) -> None:
+    """Verify every Q38/DQ38 code uses the production couple recode."""
+    values = pd.Series([int(code)], dtype="Int8")
+    result = recode_binary_response(values, coding=COUPLE_RECODE)
+    assert result.iloc[0] == expected
 
 
-def test_education_code9_educ_is_missing() -> None:
-    """Code 9 (Other) yields missing in 'educ'."""
-    s = pd.Series([9], dtype="Float64")
-    result = _map(s, _EDUC_MAP)
-    assert result.isna().all()
+def test_binary_recodes_cover_their_complete_source_domains() -> None:
+    """Ensure authoritative recodes explicitly classify every allowed code."""
+    assert FEMALE_RECODE.source_codes == frozenset(map(int, GenderEnum))
+    assert HISPANIC_RECODE.source_codes == frozenset(map(int, YesNoEnum))
+    assert COUPLE_RECODE.source_codes == frozenset(map(int, YesNoEnum))
+    assert COLLEGE_RECODE.source_codes == frozenset(map(int, EducationEnum))
+    assert OWNER_RECODE.source_codes == frozenset(map(int, ResidenceOwnershipEnum))
 
 
-def test_education_missing_passthrough() -> None:
-    """Missing Q36 responses remain missing in both derived columns."""
-    s = pd.Series([pd.NA], dtype="Float64")
-    assert _map(s, _COLLEGE_MAP).isna().all()
-    assert _map(s, _EDUC_MAP).isna().all()
+def test_missing_categorical_responses_remain_missing() -> None:
+    """Verify source missingness survives all demographic recodes."""
+    _, result = _process_demographics(_demographics_frame())
+    assert result[["female", "hispanic", "college", "educ"]].isna().all().all()
 
 
 # ---------------------------------------------------------------------------
@@ -195,49 +152,46 @@ def test_education_missing_passthrough() -> None:
 def test_clean_age_valid_range_preserved() -> None:
     """Ages within [AGE_MIN, AGE_MAX] are not modified."""
     ages = [AGE_MIN, 35, 55, AGE_MAX]
-    s = pd.Series(ages, dtype="Float64")
-    result = clean_age(s)
-    pd.testing.assert_series_equal(result, s)
+    values = pd.Series(ages, dtype="Float64")
+    result = clean_age(values)
+    pd.testing.assert_series_equal(result, values)
 
 
 @pytest.mark.parametrize("bad_age", [0, 3, 4, 17, AGE_MAX + 1, 511])
 def test_clean_age_out_of_domain_set_to_missing(bad_age: int) -> None:
     """Out-of-domain ages are replaced with missing."""
-    s = pd.Series([bad_age], dtype="Float64")
-    result = clean_age(s)
+    values = pd.Series([bad_age], dtype="Float64")
+    result = clean_age(values)
     assert result.isna().all(), f"Expected NA for age {bad_age}, got {result.iloc[0]}"
 
 
 def test_clean_age_boundary_values_kept() -> None:
     """Boundary values AGE_MIN and AGE_MAX are not cleared."""
-    s = pd.Series([AGE_MIN, AGE_MAX], dtype="Float64")
-    result = clean_age(s)
+    values = pd.Series([AGE_MIN, AGE_MAX], dtype="Float64")
+    result = clean_age(values)
     assert result.notna().all()
 
 
 def test_clean_age_missing_passthrough() -> None:
     """Pre-existing missing values are not disturbed."""
-    s = pd.Series([pd.NA, 30, pd.NA], dtype="Float64")
-    result = clean_age(s)
+    values = pd.Series([pd.NA, 30, pd.NA], dtype="Float64")
+    result = clean_age(values)
     assert result.isna().iloc[0]
     assert result.iloc[1] == 30
     assert result.isna().iloc[2]
 
 
 def test_clean_age_returns_copy() -> None:
-    """clean_age() must not mutate the input Series."""
-    s = pd.Series([0, 25, 511], dtype="Float64")
-    original = s.copy()
-    clean_age(s)
-    pd.testing.assert_series_equal(s, original)
+    """The cleaner must not mutate the input Series."""
+    values = pd.Series([0, 25, 511], dtype="Float64")
+    original = values.copy()
+    clean_age(values)
+    pd.testing.assert_series_equal(values, original)
 
 
 def test_clean_age_mixed_valid_and_invalid() -> None:
     """Only invalid entries are cleared; valid entries survive unchanged."""
-    s = pd.Series([0, 25, 511, 70, np.nan], dtype="Float64")
-    result = clean_age(s)
-    assert result.isna().iloc[0]   # 0 → missing
-    assert result.iloc[1] == 25    # valid
-    assert result.isna().iloc[2]   # 511 → missing
-    assert result.iloc[3] == 70    # valid
-    assert result.isna().iloc[4]   # already missing
+    values = pd.Series([0, 25, 511, 70, np.nan], dtype="Float64")
+    result = clean_age(values)
+    expected = pd.Series([np.nan, 25, np.nan, 70, np.nan], dtype="Float64")
+    pd.testing.assert_series_equal(result, expected)

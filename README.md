@@ -73,6 +73,19 @@ uv run src/clean_questionnaire.py <path_to_pdf>
 
 This runs `pdftotext -layout` to preserve horizontal layout structure, maps Wingdings radio buttons and checkboxes to standard `( )` and `[ ]` characters, converts non-ASCII punctuation to standard ASCII, strips the licensing preamble, and saves the result to `QUESTIONNAIRE.txt` at the root of the workspace.
 
+`QUESTIONNAIRE.txt` was extracted from the [official FRBNY SCE core
+questionnaire](https://www.newyorkfed.org/medialibrary/interactives/sce/sce/downloads/data/frbny-sce-survey-core-module-public-questionnaire.pdf).
+The source PDF has SHA-256
+`e30e2ef1f925cb90aef1d5d6c9b13c6307b1f311e40c5b894ad27ddf69066e93`.
+FRBNY publishes this as a single, unversioned document rather than an archive of
+historical core questionnaires.
+
+Numerical-literacy correctness is therefore calculated only for responses from
+new respondents (`tenure == 1`), as specified by the published questionnaire.
+Raw responses recorded for incumbent pilot-panel members are retained, but their
+correctness indicators remain missing because the historical instrument cannot
+be established from the published documentation.
+
 ### 4. Code Quality & Type Checking
 
 To run code formatting, linting, and type checking:

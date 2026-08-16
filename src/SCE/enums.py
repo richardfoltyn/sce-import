@@ -14,6 +14,20 @@ Author: Richard Foltyn
 from enum import IntEnum
 
 
+class YesNoEnum(IntEnum):
+    """Codes used by explicit yes/no questionnaire responses."""
+
+    YES = 1
+    NO = 2
+
+
+class GenderEnum(IntEnum):
+    """Codes used by Q33, gender."""
+
+    FEMALE = 1
+    MALE = 2
+
+
 class WellBeingEnum(IntEnum):
     """
     Categorical response for financial well-being.
@@ -89,6 +103,22 @@ class EmplStatusEnum(IntEnum):
         return mapping[self]
 
 
+class PartnerEmplStatusEnum(IntEnum):
+    """Categorical response for HH2/DHH2, partner employment status."""
+
+    FULL_TIME = 1
+    PART_TIME = 2
+    SELF_EMPLOYED = 3
+    NOT_WORKING = 4
+    TEMP_LAYOFF = 5
+    LEAVE = 6
+    DISABLED = 7
+    RETIRED = 8
+    STUDENT = 9
+    HOMEMAKER = 10
+    OTHER = 11
+
+
 class EmplTypeEnum(IntEnum):
     """
     Categorical response for Q12new, working for someone else or self-employed.
@@ -115,6 +145,25 @@ class EmplTypeEnum(IntEnum):
             cls.SELF_EMPLOYED: "Self-employed",
         }
         return mapping[self]
+
+
+class ResidenceOwnershipEnum(IntEnum):
+    """Codes used by Q43, primary-residence ownership status."""
+
+    OWN = 1
+    RENT = 2
+    OTHER = 3
+
+
+class SameEmployerEnum(IntEnum):
+    """Codes used by DSAME, employment relative to the previous survey."""
+
+    SAME_JOB = 1
+    SAME_EMPLOYER_DIFFERENT_ROLE = 2
+    DIFFERENT_EMPLOYER = 3
+    NOT_PREVIOUSLY_EMPLOYED = 4
+    # The public data use the next sequential code for the displayed Other option.
+    OTHER = 5
 
 
 class EducationEnum(IntEnum):

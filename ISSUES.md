@@ -733,7 +733,7 @@ unconstrained floats and produces noisy warnings for expected missingness.
 
 ---
 
-## [ ] SCE-013 — Verify categorical mappings and clean impossible response-domain values
+## [x] SCE-013 — Verify categorical mappings and clean impossible response-domain values
 
 **Priority:** P2  
 **Files:** `src/SCE/importer.py`, `src/SCE/enums.py`,
@@ -783,15 +783,21 @@ specific codebook version. There are also unresolved domain inconsistencies:
 - The currently implemented recodes agree with `QUESTIONNAIRE.txt`, education
   code 9 is missing in both derived education fields, and out-of-domain ages are
   cleared and logged before panel propagation.
-
-### Remaining work
-
-- Replace anonymous production mapping dictionaries with named constants,
-  enums, or a versioned mapping table that the transformations actually use.
-- Make mapping tests exercise those production mappings or domain processors
-  rather than duplicating mapping literals in the tests.
-- Complete fixtures for all allowed employment and numerical-literacy codes and
-  document the questionnaire/codebook revision used for verification.
+- Documented the official, currently published FRBNY core questionnaire and its
+  SHA-256. FRBNY provides no versioned archive of historical core questionnaires.
+- Numerical-literacy correctness now uses a named production answer key only for
+  new respondents (`tenure == 1`). Raw incumbent pilot-panel answers are retained,
+  but their correctness remains missing and the affected counts are logged because
+  the historical instrument cannot be verified.
+- Production-path fixtures cover correct, incorrect, missing, and unverified
+  numerical responses, including every allowed QNUM8 and QNUM9 response code.
+- Added source-code enums and authoritative recodes in `SCE.enums` and
+  `SCE.codings`; the importer now consumes these definitions rather than anonymous
+  mapping dictionaries, and tests exercise the production processors/recodes.
+- Employment fixtures cover all Q10, Q12new, Q15, HH2/DHH2, and DSAME codes.
+  `working` retains its literal-current-work meaning (Q10 codes 1--2); temporary
+  layoff/leave are zero. Other-only Q10/HH2 responses and DSAME Other are missing,
+  while a known status selected alongside Other determines the aggregate.
 
 ---
 

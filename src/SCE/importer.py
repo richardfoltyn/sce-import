@@ -15,6 +15,23 @@ import logging
 import numpy as np
 import pandas as pd
 
+from SCE.codings import (
+    COLLEGE_RECODE,
+    COUPLE_RECODE,
+    EDUCATION_TO_EDUC4,
+    FEMALE_RECODE,
+    HISPANIC_RECODE,
+    HOUSEHOLD_CHANGED_RECODE,
+    OWNER_RECODE,
+    Q10_OTHER_COLUMNS,
+    Q10_WORKING_COLUMNS,
+    SAME_EMPLOYER_RECODE,
+    SELF_EMPLOYED_RECODE,
+    SPOUSE_OTHER_COLUMNS,
+    SPOUSE_WORKING_COLUMNS,
+    YES_NO_RECODE,
+    BinaryRecode,
+)
 from SCE.constants import VARNAME_ID, VARNAME_WID
 from SCE.datatypes import NULLABLE_INT8_COLUMNS
 from SCE.pandas_helpers import merge_if_na, tile_const
@@ -164,33 +181,39 @@ def flip_negative(
 def recode_binary_response(
     values: pd.Series,
     *,
-    true_code: int,
-    false_code: int,
+    coding: BinaryRecode,
 ) -> pd.Series:
-    """Recode an explicitly coded binary response without losing missingness.
+    """Apply an authoritative binary recode without losing missingness.
 
     Parameters
     ----------
     values
-        Source responses containing explicit true and false codes.
-    true_code
-        Source code to map to one.
-    false_code
-        Source code to map to zero.
+        Source responses containing categorical questionnaire codes.
+    coding
+        Source codes explicitly classified as true, false, or unclassifiable.
 
     Returns
     -------
     pd.Series
         Responses represented as nullable 0/1 integers. Missing source values
-        remain ``pd.NA``.
+        and explicitly unclassifiable codes remain ``pd.NA``.
     """
-    return values.map({true_code: 1, false_code: 0}).astype(pd.Int8Dtype())
+    result = pd.Series(
+        pd.NA,
+        index=values.index,
+        dtype=pd.Int8Dtype(),
+        name=values.name,
+    )
+    result.loc[values.isin(coding.false_codes)] = 0
+    result.loc[values.isin(coding.true_codes)] = 1
+    return result
 
 
 def any_selected_indicator(
     indicators: pd.DataFrame,
     *,
-    selected_columns: list[str] | None = None,
+    selected_columns: list[str] | tuple[str, ...] | None = None,
+    unknown_columns: tuple[str, ...] = (),
 ) -> pd.Series:
     """Aggregate selected categories from a multi-response question.
 
@@ -201,20 +224,32 @@ def any_selected_indicator(
     selected_columns
         Columns whose selection should produce one. If omitted, selection of
         any supplied column produces one.
+    unknown_columns
+        Unclassifiable categories. A row selecting only one of these categories
+        produces missing rather than zero.
 
     Returns
     -------
     pd.Series
-        Nullable 0/1 integers. A row is missing only when all response
-        indicators are missing; an observed row without a selected category is
-        zero.
+        Nullable 0/1 integers. A row is missing when all response indicators
+        are missing or only an unclassifiable category is selected. An observed
+        row without a selected true category is otherwise zero.
     """
     selected = indicators
     if selected_columns is not None:
-        selected = indicators[selected_columns]
+        selected = indicators[list(selected_columns)]
 
     result = selected.eq(1).any(axis=1)
-    return result.mask(indicators.isna().all(axis=1)).astype(pd.Int8Dtype())
+    all_missing = indicators.isna().all(axis=1)
+
+    unknown_only = pd.Series(False, index=indicators.index)
+    if unknown_columns:
+        unknown_selected = indicators[list(unknown_columns)].eq(1).any(axis=1)
+        known = indicators.drop(columns=list(unknown_columns))
+        known_selected = known.eq(1).any(axis=1)
+        unknown_only = unknown_selected & ~known_selected
+
+    return result.mask(all_missing | unknown_only).astype(pd.Int8Dtype())
 
 
 def propagate_household_composition(
@@ -450,8 +485,12 @@ def _process_labor_market(
     columns = d.columns.to_list()
     df_full[columns] = df[columns]
 
+    # `working` means working now (full-/part-time), not merely job-attached;
+    # an Other-only response is unclassifiable rather than explicitly not working.
     df_extract["working"] = any_selected_indicator(
-        d, selected_columns=["Q10_1", "Q10_2"]
+        d,
+        selected_columns=Q10_WORKING_COLUMNS,
+        unknown_columns=Q10_OTHER_COLUMNS,
     )
 
     # Q11: Current number of jobs, conditional on working, temp layoff, or on leave
@@ -461,8 +500,8 @@ def _process_labor_market(
     # Q12new: do you work for someone else or are you self-employed?
     # Coding: (1) Work for someone else, (2) Self-employed — see EmplTypeEnum.
     df_full["Q12new"] = df["Q12new"]
-    df_extract["self_employed"] = df_full["Q12new"].map(
-        {1: 0, 2: 1}, na_action="ignore"
+    df_extract["self_employed"] = recode_binary_response(
+        df_full["Q12new"], coding=SELF_EMPLOYED_RECODE
     )
 
     # Q13new: change that R will lose main/current job
@@ -477,7 +516,7 @@ def _process_labor_market(
     # structural missingness therefore must not be interpreted as "No."
     df_full["Q15"] = df["Q15"]
     df_extract["looking_for_job"] = recode_binary_response(
-        df_full["Q15"], true_code=1, false_code=2
+        df_full["Q15"], coding=YES_NO_RECODE
     )
 
     # Q16: How long have you been unemployed (in months)
@@ -633,6 +672,57 @@ def _process_housing_and_macro(
     return df_full, df_extract
 
 
+# Answer key for the official, currently published SCE core questionnaire.
+# The FRBNY does not publish a versioned historical core questionnaire. Responses
+# recorded for incumbent panel members before their first public-data observation
+# are therefore preserved but not scored below.
+NUMERICAL_LITERACY_ANSWER_KEY: dict[str, float] = {
+    "QNUM1": 150.0,
+    "QNUM2": 200.0 * 1.1**2,
+    "QNUM3": 10.0,
+    "QNUM5": 100.0,
+    "QNUM6": 10_000.0 * 0.0005,
+    "QNUM8": 3.0,
+    "QNUM9": 2.0,
+}
+
+
+def score_numerical_literacy_response(
+    values: pd.Series,
+    *,
+    answer: float,
+    eligible: pd.Series,
+) -> pd.Series:
+    """Score responses whose questionnaire version is established.
+
+    Parameters
+    ----------
+    values
+        Numerical-literacy responses for one question.
+    answer
+        Correct answer in the currently published SCE core questionnaire.
+    eligible
+        Boolean indicator for responses known to use that questionnaire. The
+        core questionnaire asks these questions only of new respondents, so
+        production processing supplies ``tenure == 1``.
+
+    Returns
+    -------
+    pd.Series
+        Nullable 0/1 correctness indicator. Missing responses and responses
+        from an unverified questionnaire version remain missing.
+    """
+    result = pd.Series(pd.NA, index=values.index, dtype=pd.Int8Dtype())
+    scored = values.notna() & eligible
+    result.loc[scored] = np.isclose(
+        values.loc[scored],
+        answer,
+        rtol=0.0,
+        atol=1.0e-6,
+    ).astype(np.int8)
+    return result
+
+
 def _process_financial_literacy(
     df: pd.DataFrame,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -640,71 +730,35 @@ def _process_financial_literacy(
     df_full = pd.DataFrame(index=df.index)
     df_extract = pd.DataFrame(index=df.index)
 
-    # --- Numerical literacy questions (new respondents only) ---
+    # The published questionnaire asks QNUM* only of new respondents. The first
+    # public wave nevertheless contains responses for incumbent pilot members
+    # with tenure greater than one, including answer patterns inconsistent with
+    # the published questions. Their raw values remain useful, but without the
+    # historical instrument their correctness cannot be established.
+    eligible = df["tenure"].eq(1)
+    qnum_columns = list(NUMERICAL_LITERACY_ANSWER_KEY)
+    has_response = df[qnum_columns].notna()
+    unverified_rows = ~eligible & has_response.any(axis=1)
+    if unverified_rows.any():
+        n_rows = int(unverified_rows.sum())
+        n_responses = int(has_response.loc[unverified_rows].sum().sum())
+        logging.getLogger(LOGGER_NAME).warning(
+            f"Numerical literacy: preserving {n_responses:,d} response(s) from "
+            f"{n_rows:,d} non-new-respondent row(s), but leaving correctness "
+            "missing because the historical questionnaire is unavailable"
+        )
 
-    # QNUM1: Compute 50% discounted price from $300
-    df_full["QNUM1"] = df["QNUM1"]
-    df_extract["num_lit_q1"] = df_full["QNUM1"]
-    df_extract["num_lit_q1_correct"] = np.where(
-        df_extract["num_lit_q1"].notna(), df_extract["num_lit_q1"] == 150, np.nan
-    )
+    for source_name, answer in NUMERICAL_LITERACY_ANSWER_KEY.items():
+        question_number = source_name.removeprefix("QNUM").lower()
+        extract_name = f"num_lit_q{question_number}"
 
-    # QNUM2: Gross interest of 10% on $200 after 2 years
-    df_full["QNUM2"] = df["QNUM2"]
-    df_extract["num_lit_q2"] = df_full["QNUM2"]
-    df_extract["num_lit_q2_correct"] = np.where(
-        df_extract["num_lit_q2"].notna(),
-        (df_extract["num_lit_q2"] - 200 * 1.1**2).abs() < 1.0e-6,
-        np.nan,
-    )
-
-    # QNUM3: Number of lottery winners out of 1,000 if chance is 1%
-    df_full["QNUM3"] = df["QNUM3"]
-    df_extract["num_lit_q3"] = df_full["QNUM3"]
-    df_extract["num_lit_q3_correct"] = np.where(
-        df_extract["num_lit_q3"].notna(),
-        df_extract["num_lit_q3"] == 10,
-        np.nan,
-    )
-
-    # QNUM5: Expected number of people with disease out of 1,000 if chance = 10%
-    df_full["QNUM5"] = df["QNUM5"]
-    df_extract["num_lit_q5"] = df_full["QNUM5"]
-    df_extract["num_lit_q5_correct"] = np.where(
-        df_extract["num_lit_q5"].notna(),
-        df_extract["num_lit_q5"] == 100,
-        np.nan,
-    )
-
-    # QNUM6: Expected number of infected out of 10,000 if chance = 0.0005
-    df_full["QNUM6"] = df["QNUM6"]
-    df_extract["num_lit_q6"] = df_full["QNUM6"]
-    df_extract["num_lit_q6_correct"] = np.where(
-        df_extract["num_lit_q6"].notna(),
-        df_extract["num_lit_q6"] == 10000 * 0.0005,
-        np.nan,
-    )
-
-    # QNUM8: Big 3: interest rate vs. inflation question
-    # Interest rate = 1%, inflation = 2%.
-    # Answers: (1) more than today (2) exactly the same (3) less than today
-    df_full["QNUM8"] = df["QNUM8"]
-    df_extract["num_lit_q8"] = df_full["QNUM8"]
-    df_extract["num_lit_q8_correct"] = np.where(
-        df_extract["num_lit_q8"].notna(),
-        df_extract["num_lit_q8"] == 3,
-        np.nan,
-    )
-
-    # QNUM9: Big 3: Buying a single company stock is safer than mutual fund
-    # Answers: (1) True (2) False
-    df_full["QNUM9"] = df["QNUM9"]
-    df_extract["num_lit_q9"] = df_full["QNUM9"]
-    df_extract["num_lit_q9_correct"] = np.where(
-        df_extract["num_lit_q9"].notna(),
-        df_extract["num_lit_q9"] == 2,
-        np.nan,
-    )
+        df_full[source_name] = df[source_name]
+        df_extract[extract_name] = df_full[source_name]
+        df_extract[f"{extract_name}_correct"] = score_numerical_literacy_response(
+            df_extract[extract_name],
+            answer=answer,
+            eligible=eligible,
+        )
 
     return df_full, df_extract
 
@@ -729,13 +783,15 @@ def _process_demographics(
 
     # Q33: gender — coding: (1) Female, (2) Male.
     df_full["Q33"] = tile_const(df["Q33"], VARNAME_ID, "Int8")
-    female = df_full["Q33"].map({1: 1, 2: 0}, na_action="ignore")
-    df_extract["female"] = female
+    df_extract["female"] = recode_binary_response(
+        df_full["Q33"], coding=FEMALE_RECODE
+    )
 
     # Q34: Hispanic/Latino origin — coding: (1) Yes, (2) No.
     df_full["Q34"] = tile_const(df["Q34"], VARNAME_ID, "Int8")
-    hispanic = df_full["Q34"].map({1: 1, 2: 0}, na_action="ignore")
-    df_extract["hispanic"] = hispanic
+    df_extract["hispanic"] = recode_binary_response(
+        df_full["Q34"], coding=HISPANIC_RECODE
+    )
 
     # Q35 records race only at the initial interview. Preserve these sparse raw
     # responses in the full output and tile only descriptively named indicators.
@@ -760,14 +816,14 @@ def _process_demographics(
     # Binary college indicator: codes 5–8 are college-level degrees; codes 1–4
     # are below college; code 9 (Other) is treated as missing (not as non-college)
     # because the respondent's actual qualification is unknown.
-    df_extract["college"] = df_full["Q36"].map(
-        {1: 0, 2: 0, 3: 0, 4: 0, 5: 1, 6: 1, 7: 1, 8: 1}, na_action="ignore"
+    df_extract["college"] = recode_binary_response(
+        df_full["Q36"], coding=COLLEGE_RECODE
     )
     # Coarser education with 4 categories (Educ4Enum): LT HS=1, HS=2,
     # Some college (including associate's degree)=3, College degree=4.
     # Code 9 (Other) is unmapped and therefore remains missing.
-    df_extract["educ"] = df_full["Q36"].map(
-        {1: 1, 2: 2, 3: 3, 4: 3, 5: 4, 6: 4, 7: 4, 8: 4}, na_action="ignore"
+    df_extract["educ"] = (
+        df_full["Q36"].map(EDUCATION_TO_EDUC4).astype(pd.Int8Dtype())
     )
 
     # Q37: How long working at current job? (categorical)
@@ -806,7 +862,9 @@ def _process_household_background(
     # as missing because the arrangement is unspecified; it must not be equated
     # with renting.
     df_full["Q43"] = df["Q43"]
-    df_extract["owner"] = df_full["Q43"].map({1: 1, 2: 0}, na_action="ignore")
+    df_extract["owner"] = recode_binary_response(
+        df_full["Q43"], coding=OWNER_RECODE
+    )
 
     # Q44: Own any other homes?
     df_full["Q44"] = df["Q44"]
@@ -842,7 +900,7 @@ def _process_household_background(
     # Missing initial-interview responses must remain distinct from "unchanged."
     df_full["D1"] = df["D1"]
     df_extract["hh_changed"] = recode_binary_response(
-        df_full["D1"], true_code=2, false_code=1
+        df_full["D1"], coding=HOUSEHOLD_CHANGED_RECODE
     )
 
     # D2new is a complete replacement state when observed. In particular, 2013
@@ -867,15 +925,17 @@ def _process_household_background(
 
     # DSAME: Worked at same employer in last survey?
     df_full["DSAME"] = df["DSAME"]
-    df_extract["same_employer"] = np.where(
-        df_full["DSAME"].notna(), df_full["DSAME"].isin((1, 2)), np.nan
+    # DSAME Other does not establish whether the employer is the same.
+    df_extract["same_employer"] = recode_binary_response(
+        df_full["DSAME"], coding=SAME_EMPLOYER_RECODE
     )
 
     # DQ38: currently married or living with partner? (repeat-interview update to Q38)
     # Coding: (1) Yes, (2) No.
     df_full["Q38"] = merge_if_na(df_full["Q38"], df["DQ38"])
-    couple = df_full["Q38"].map({1: 1, 2: 0}, na_action="ignore")
-    df_extract["couple"] = couple
+    df_extract["couple"] = recode_binary_response(
+        df_full["Q38"], coding=COUPLE_RECODE
+    )
 
     # DHH2 repeats the HH2 multi-response question; merge updates into the
     # canonical HH2 fields before deriving spouse employment.
@@ -887,11 +947,12 @@ def _process_household_background(
             df_full[dst] = merge_if_na(df_full[dst], col)
 
     if spouse_status_columns[0] in df_full.columns:
-        # Full-time, part-time, and self-employment are HH2 categories 1--3;
-        # observed categories 4--11 are non-working statuses.
+        # Full-time, part-time, and self-employment mean working; an Other-only
+        # response is unclassifiable rather than explicitly not working.
         df_extract["spouse_working"] = any_selected_indicator(
             df_full[spouse_status_columns],
-            selected_columns=spouse_status_columns[:3],
+            selected_columns=SPOUSE_WORKING_COLUMNS,
+            unknown_columns=SPOUSE_OTHER_COLUMNS,
         )
 
     # D6: Current total pre-tax family income (11 income bins)
