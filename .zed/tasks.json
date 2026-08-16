@@ -6,5 +6,13 @@
       "$ZED_WORKTREE_ROOT/src/main.py"
     ],
     "cwd": "$ZED_WORKTREE_ROOT"
+  },
+  {
+    "label": "Run SCE diagnostic plots",
+    "command": "$ZED_CUSTOM_PYTHON_ACTIVE_ZED_TOOLCHAIN",
+    "args": [
+      "$ZED_WORKTREE_ROOT/src/main_plot_diag.py"
+    ],
+    "cwd": "$ZED_WORKTREE_ROOT"
   }
 ]
