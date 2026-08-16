@@ -92,6 +92,9 @@ class EmplStatusEnum(IntEnum):
 class EmplTypeEnum(IntEnum):
     """
     Categorical response for Q12new, working for someone else or self-employed.
+
+    Coding verified against the SCE questionnaire (Q12new):
+    ``(1) Work for someone else``, ``(2) Self-employed``.
     """
 
     FOR_SOMEONE_ELSE = 1

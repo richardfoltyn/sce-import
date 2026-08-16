@@ -723,7 +723,7 @@ unconstrained floats and produces noisy warnings for expected missingness.
 
 ---
 
-## [ ] SCE-013 — Verify categorical mappings and clean impossible response-domain values
+## [x] SCE-013 — Verify categorical mappings and clean impossible response-domain values
 
 **Priority:** P2  
 **Files:** `src/SCE/importer.py`, `src/SCE/enums.py`,

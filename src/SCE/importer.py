@@ -21,6 +21,49 @@ from SCE.pandas_helpers import merge_if_na, tile_const
 
 LOGGER_NAME: str = "SCE"
 
+# Valid age range for SCE respondents.
+# Lower bound: the NY Fed SCE targets adults aged 18 and older.
+# Upper bound: 120 is used as a generous sentinel that flags obvious data-entry
+# errors (e.g., 511) without encoding a survey design limit the questionnaire
+# does not state.
+AGE_MIN: int = 18
+AGE_MAX: int = 120
+
+
+def clean_age(s: pd.Series) -> pd.Series:
+    """Set implausible age responses to missing and log the count.
+
+    Parameters
+    ----------
+    s
+        Raw age column (``Q32``) from the SCE survey. Only values in
+        ``[AGE_MIN, AGE_MAX]`` are kept; everything else is replaced with
+        ``pd.NA``.
+
+    Returns
+    -------
+    pd.Series
+        Copy of ``s`` with out-of-domain values set to ``pd.NA``.
+
+    Notes
+    -----
+    The SCE questionnaire (Q32) does not state an explicit upper age bound.
+    ``AGE_MAX = 120`` is therefore chosen as an unambiguously impossible
+    ceiling rather than a design restriction. ``AGE_MIN = 18`` reflects the
+    NY Fed SCE recruitment criterion that all panel members must be adults.
+    """
+    result = s.copy(deep=True)
+    invalid = result.notna() & ((result < AGE_MIN) | (result > AGE_MAX))
+    n_invalid = int(invalid.sum())
+    if n_invalid:
+        logger = logging.getLogger(LOGGER_NAME)
+        logger.warning(
+            f"Q32 (age): {n_invalid:,d} out-of-domain value(s) outside "
+            f"[{AGE_MIN}, {AGE_MAX}] set to missing"
+        )
+        result = result.where(~invalid)
+    return result
+
 
 def flip_negative(
     s: pd.Series,
@@ -436,9 +479,8 @@ def process_sce(
     df_full["Q11"] = df["Q11"]
     df_extract["num_jobs"] = df_full["Q11"]
 
-    # Q12: Self-employed?
-    # The questionaire does not specify the coding, assume 1 = work for someone else,
-    # 2 = self-employed
+    # Q12new: do you work for someone else or are you self-employed?
+    # Coding: (1) Work for someone else, (2) Self-employed — see EmplTypeEnum.
     df_full["Q12new"] = df["Q12new"]
     df_extract["self_employed"] = df_full["Q12new"].map(
         {1: 0, 2: 1}, na_action="ignore"
@@ -665,19 +707,21 @@ def process_sce(
 
     # --- Demographic questions (new respondents only) ---
 
-    # Q32: Current age (only asked of now respondents)
-    # Age remains continuous until invalid raw responses are handled under SCE-013.
-    df_full["Q32"] = tile_const(df["Q32"], VARNAME_ID)
+    # Q32: current age at first interview (asked of new respondents only).
+    # Implausible values (e.g. 0, 3, 511) are set to missing before tiling so
+    # that they are not propagated to every subsequent wave for that user.
+    # Bounds: see AGE_MIN / AGE_MAX constants.
+    df_full["Q32"] = tile_const(clean_age(df["Q32"]), VARNAME_ID)
 
     # Broadcast age across all waves since it does not seem to be asked again.
     df_extract["age_init"] = df_full["Q32"]
 
-    # Q33: gender: (1) Female (2) Male
+    # Q33: gender — coding: (1) Female, (2) Male.
     df_full["Q33"] = tile_const(df["Q33"], VARNAME_ID, "Int8")
     female = df_full["Q33"].map({1: 1, 2: 0}, na_action="ignore")
     df_extract["female"] = female
 
-    # Q34: Hispanic
+    # Q34: Hispanic/Latino origin — coding: (1) Yes, (2) No.
     df_full["Q34"] = tile_const(df["Q34"], VARNAME_ID, "Int8")
     hispanic = df_full["Q34"].map({1: 1, 2: 0}, na_action="ignore")
     df_extract["hispanic"] = hispanic
@@ -690,12 +734,28 @@ def process_sce(
     df_full["black"] = races["Q35_2"]
     df_extract["black"] = races["Q35_2"]
 
-    # Q36: Highest level of education
+    # Q36: highest education level — codes 1–8 map to specific levels;
+    # code 9 is "Other (please specify)".
     df_full["Q36"] = tile_const(df["Q36"], VARNAME_ID, "Int8")
-    df_extract["college"] = np.where(
-        df_full["Q36"].notna(), df_full["Q36"].isin((5, 6, 7, 8)), np.nan
+
+    # Count code-9 ("Other") education responses. These are unclassifiable and
+    # are treated as missing in both derived variables below.
+    n_educ_other = int((df_full["Q36"] == 9).sum())
+    if n_educ_other:
+        logging.getLogger(LOGGER_NAME).warning(
+            f"Q36 (education): {n_educ_other:,d} code-9 ('Other') response(s) "
+            "set to missing in both 'college' and 'educ'"
+        )
+
+    # Binary college indicator: codes 5–8 are college-level degrees; codes 1–4
+    # are below college; code 9 (Other) is treated as missing (not as non-college)
+    # because the respondent's actual qualification is unknown.
+    df_extract["college"] = df_full["Q36"].map(
+        {1: 0, 2: 0, 3: 0, 4: 0, 5: 1, 6: 1, 7: 1, 8: 1}, na_action="ignore"
     )
-    # Coarser education with 4 categories: LT HS, HS, Some college, College degree
+    # Coarser education with 4 categories (Educ4Enum): LT HS=1, HS=2,
+    # Some college (including associate's degree)=3, College degree=4.
+    # Code 9 (Other) is unmapped and therefore remains missing.
     df_extract["educ"] = df_full["Q36"].map(
         {1: 1, 2: 2, 3: 3, 4: 3, 5: 4, 6: 4, 7: 4, 8: 4}, na_action="ignore"
     )
@@ -721,9 +781,12 @@ def process_sce(
     # 42: How many years in total lived in current state?
     df_full["Q42"] = df["Q42"]
 
-    # Q43: Rent/own current residence
+    # Q43: do you own or rent your primary residence?
+    # Coding: (1) Own, (2) Rent, (3) Other (please specify). Code 3 is treated
+    # as missing because the arrangement is unspecified; it must not be equated
+    # with renting.
     df_full["Q43"] = df["Q43"]
-    df_extract["owner"] = df_full["Q43"].map({1: 1, 2: 0, 3: 0}, na_action="ignore")
+    df_extract["owner"] = df_full["Q43"].map({1: 1, 2: 0}, na_action="ignore")
 
     # Q44: Own any other homes?
     df_full["Q44"] = df["Q44"]
@@ -788,7 +851,8 @@ def process_sce(
         df_full["DSAME"].notna(), df_full["DSAME"].isin((1, 2)), np.nan
     )
 
-    # DQ38: Currently married or living with partner?
+    # DQ38: currently married or living with partner? (repeat-interview update to Q38)
+    # Coding: (1) Yes, (2) No.
     df_full["Q38"] = merge_if_na(df_full["Q38"], df["DQ38"])
     couple = df_full["Q38"].map({1: 1, 2: 0}, na_action="ignore")
     df_extract["couple"] = couple
