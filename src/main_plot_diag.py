@@ -18,7 +18,7 @@ import pandas as pd
 from pydynopt.plot import AbstractStyle, DefaultStyle, plot_grid
 from pydynopt.plot.baseplots import hide_subplot
 
-from env import EnvConfig
+from env import EnvConfig, add_logfile
 from SCE.constants import VARNAME_ID, VARNAME_WID
 
 # Variables to exclude from diagnostic plots
@@ -380,6 +380,9 @@ def main(econf: EnvConfig) -> None:
     econf
         Parsed environment configuration.
     """
+    add_logfile("sce-plot-diag.log", logdir=econf.logdir, reltime=True)
+    logger = logging.getLogger("SCE")
+
     fn = econf.datadir / "sce_extract.pkl.zst"
     if not fn.is_file():
         raise SystemExit(
@@ -391,18 +394,39 @@ def main(econf: EnvConfig) -> None:
 
     # Plot histogram of individual obs.
     fn = econf.graphdir / "sce_indiv_obs.pdf"
-    plot_nobs_indiv(df, outfile=fn)
+    logger.info(f"Saving SCE individual observations to {fn}")
+    plot_nobs_indiv(
+        df,
+        outfile=fn,
+        suptitle="SCE: Number of Observations per Respondent by Variable",
+    )
 
     # Plot timeseries of N. obs. by variable
     fn = econf.graphdir / "sce_nobs.pdf"
-    plot_nobs_wave(df, outfile=fn)
+    logger.info(f"Saving SCE observations count to {fn}")
+    plot_nobs_wave(
+        df,
+        outfile=fn,
+        suptitle="SCE: Number of Observations per Wave by Variable",
+    )
 
     # Plot timeseries of descriptive statistic by variable
     fn = econf.graphdir / "sce_descriptive.pdf"
-    plot_stats_wave(df, outfile=fn)
+    logger.info(f"Saving SCE descriptive statistics to {fn}")
+    plot_stats_wave(
+        df,
+        outfile=fn,
+        suptitle="SCE: Descriptive Statistics by Wave (with Outliers)",
+    )
 
     fn = econf.graphdir / "sce_descriptive_no_outliers.pdf"
-    plot_stats_wave(df, outliers=False, outfile=fn)
+    logger.info(f"Saving SCE descriptive statistics (no outliers) to {fn}")
+    plot_stats_wave(
+        df,
+        outliers=False,
+        outfile=fn,
+        suptitle="SCE: Descriptive Statistics by Wave (No Outliers)",
+    )
 
 
 if __name__ == "__main__":
