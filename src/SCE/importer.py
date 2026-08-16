@@ -9,6 +9,7 @@ Module to import and process SCE survey data.
 Author: Richard Foltyn
 """
 
+from collections.abc import Iterable
 import logging
 
 import numpy as np
@@ -724,6 +725,93 @@ def income_reference_year(dates: pd.Series) -> pd.Series:
     return (survey_month.dt.year - previous_year).rename("year")
 
 
+def expand_income_rank_years(
+    df_ranks: pd.DataFrame,
+    required_years: Iterable[int],
+) -> pd.DataFrame:
+    """Expand ACS income ranks to all required years by income bin.
+
+    Parameters
+    ----------
+    df_ranks
+        ACS rank mapping with ``year``, ``ibin``, and ``rank`` columns.
+    required_years
+        ACS reference years required by the SCE observations.
+
+    Returns
+    -------
+    pd.DataFrame
+        Rank mappings on a complete year-by-income-bin grid. Internal and
+        future missing years use the latest preceding mapping for the same bin.
+
+    Raises
+    ------
+    ValueError
+        If a required year predates the first ACS year or a complete mapping
+        cannot be constructed by carrying prior ranks forward.
+
+    Notes
+    -----
+    SCE income bins have fixed nominal boundaries. When an ACS mapping is not
+    available for a reference year, the policy is therefore to retain the most
+    recent mapping independently within each income bin. Future ACS mappings
+    are never used to back-fill earlier years.
+    """
+    logger = logging.getLogger(LOGGER_NAME)
+
+    required = np.asarray(list(required_years), dtype=np.int64)
+    source = df_ranks[["year", "ibin", "rank"]].copy()
+    first_year = int(source["year"].min())
+    last_year = int(source["year"].max())
+
+    if required.size and (earliest_required := int(required.min())) < first_year:
+        raise ValueError(
+            f"SCE income reference year {earliest_required} predates the first "
+            f"available ACS rank year {first_year}; backward filling is not allowed"
+        )
+
+    final_year = max(last_year, int(required.max()) if required.size else last_year)
+    years = np.arange(first_year, final_year + 1)
+    bins = np.sort(source["ibin"].unique())
+    grid = pd.MultiIndex.from_product(
+        [years, bins], names=["year", "ibin"]
+    ).to_frame(index=False)
+
+    source["_source_year"] = source["year"]
+    expanded = grid.merge(source, on=["year", "ibin"], how="left", validate="1:1")
+    # Carry ranks down each bin separately because different income bins are not
+    # economically interchangeable, even when their ACS year is the same.
+    expanded[["rank", "_source_year"]] = expanded.groupby(
+        "ibin", sort=False
+    )[["rank", "_source_year"]].ffill()
+
+    missing = expanded[expanded["rank"].isna()][["year", "ibin"]]
+    if not missing.empty:
+        keys = list(missing.itertuples(index=False, name=None))
+        raise ValueError(
+            "ACS ranks cannot form a complete year-by-income-bin mapping; "
+            f"missing keys: {keys}"
+        )
+
+    required_set = set(required.tolist())
+    substitutions = expanded[
+        expanded["year"].isin(required_set)
+        & expanded["_source_year"].ne(expanded["year"])
+    ]
+    for (source_year, target_year), rows in substitutions.groupby(
+        ["_source_year", "year"], sort=True
+    ):
+        substituted_bins = rows["ibin"].tolist()
+        logger.warning(
+            "  Using ACS income ranks from %d for reference year %d, bins %s",
+            source_year,
+            target_year,
+            substituted_bins,
+        )
+
+    return expanded[["year", "ibin", "rank"]]
+
+
 def merge_inc_rank(
     df: pd.DataFrame,
     varname_inc_bin: str,
@@ -756,9 +844,10 @@ def merge_inc_rank(
 
     df = df.copy()
     df["year"] = income_reference_year(df["date"])
+    years_in_sce = np.sort(df["year"].unique())
+    df_ranks = expand_income_rank_years(df_ranks, years_in_sce)
 
     # Rescale to rank percentiles on [0, 100]
-    df_ranks = df_ranks.copy()
     if df_ranks["rank"].max() <= 1.0:
         df_ranks["rank"] = df_ranks["rank"] * 100.0
 
@@ -771,20 +860,26 @@ def merge_inc_rank(
 
     df_ranks = df_ranks[["year", varname_inc_bin, varname_rank]].copy()
 
-    # Forward-fill missing income rank years
-    years_in_sce = np.sort(df["year"].unique())
-    years_missing = [year for year in years_in_sce if year not in years_in_ranks]
-    if years_missing:
-        logger.warning(f"Missing income rank for years: {years_missing}")
-        logger.critical("Forward-filling of missing years not implemented yet")
-        raise NotImplementedError()
-
     df = df.merge(
         df_ranks,
         how="left",
         on=["year", varname_inc_bin],
         validate="m:1",
     )
+
+    unmatched = df[varname_inc_bin].notna() & df[varname_rank].isna()
+    if unmatched.any():
+        # Every reported SCE income bin must have an ACS rank for its assigned
+        # reference year; otherwise the output would silently lose rank coverage.
+        keys = list(
+            df.loc[unmatched, ["year", varname_inc_bin]]
+            .drop_duplicates()
+            .itertuples(index=False, name=None)
+        )
+        raise ValueError(
+            f"Income ranks are unavailable for non-missing {varname_inc_bin} "
+            f"responses at keys: {keys}"
+        )
 
     if index_names is not None:
         df = df.set_index(index_names).sort_index()

@@ -370,7 +370,7 @@ actual value is `None`.
 
 ---
 
-## [ ] SCE-007 — Implement a defined policy for SCE years newer than the ACS rank table
+## [x] SCE-007 — Implement a defined policy for SCE years newer than the ACS rank table
 
 **Priority:** P1  
 **Files:** `src/SCE/importer.py` (`merge_inc_rank`, lines 653–659)
@@ -403,6 +403,18 @@ interviews from July 2025 onward will make the normal import fail.
 - Pre-ACS survey years fail with an informative error unless a separately
   documented policy is selected.
 - A complete 11-bin mapping remains `m:1` mergeable.
+
+### Completion notes
+
+- Missing ACS rank years now use the most recent preceding mapping separately
+  within each income bin. This fills internal gaps and carries the final ACS
+  mapping into future SCE reference years without copying ranks between bins.
+- Required reference years before the first ACS year fail explicitly rather than
+  being back-filled, and every source-to-target year substitution is logged with
+  the affected bins.
+- The merge retains `m:1` validation and now fails if any reported SCE income bin
+  lacks a post-merge rank. Synthetic validation covered an internal gap, future
+  extrapolation for all 11 bins, bin isolation, and rejection of a pre-ACS year.
 
 ---
 
