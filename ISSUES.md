@@ -554,54 +554,46 @@ future source would then produce inconsistent full and extract outputs.
 
 ---
 
-## [x] SCE-010 — Store tiled derived race indicators in the full output
+## [x] SCE-010 — Preserve sparse race responses and tile extract indicators
 
 **Priority:** P1  
 **Files:** `src/SCE/importer.py` (race-processing block)
 
 ### Problem
 
-The importer correctly computes respondent-level tiled race responses:
+The full and extract outputs have different roles. The full output retains
+curated source-named variables, while the extract contains descriptively named
+derived variables. Race processing must preserve that distinction:
+`Q35_1`–`Q35_6` should retain their sparse initial-interview observation pattern
+in the full output, while derived indicators such as `black` should be tiled
+across respondent waves in the extract only.
 
-```python
-races = tile_const(d, VARNAME_ID, np.uint8)
-```
-
-but uses them only to create `black` in the extract. The full output contains the
-original sparse `Q35_1`–`Q35_6` responses, observed at the initial interview,
-but does not contain the tiled derived variable. Users of the full output must
-therefore repeat the panel propagation themselves to obtain `black` on every
-wave.
-
-The raw and derived variables have different meanings and should both be
-retained: `Q35_*` records the source response where it was collected, while a
-descriptively named variable such as `black` is a respondent-level indicator
-tiled across waves.
+A broad source-column filter could also capture unrelated future columns whose
+names merely begin with `Q35`.
 
 ### Task
 
 1. Preserve the original sparse `Q35_*` source responses in the full output.
 2. Anchor the source-column regex to the intended `Q35_<number>` fields.
-3. Add tiled, descriptively named race indicators to both full and extract
-   outputs, sourcing both from the same tiled object.
+3. Add tiled, descriptively named race indicators to the extract, but not to the
+   full output.
 4. Preserve missingness for respondents with no observed initial race response.
 
 ### Acceptance criteria
 
 - Original `Q35_*` fields retain their source-data observation pattern in the
   full output.
-- Within a respondent, each derived race indicator equals the single observed
-  initial response on every wave.
+- `black` is absent from the full output and tiled within respondent in the
+  extract.
 - Respondents with no observed race response have missing derived indicators.
-- `df_full["black"]` and `df_extract["black"]` agree row for row.
+- Unrelated columns whose names begin with `Q35` are not imported.
 
 ### Completion notes
 
-- The full output continues to retain the original, untiled `Q35_1`–`Q35_6`
-  source responses and now also includes the respondent-level tiled `black`
-  indicator already present in the extract.
-- Both full and extract `black` variables are sourced from the same tiled race
-  object, preserving missingness for respondents with no race response.
+- The full output retains the original, untiled `Q35_1`–`Q35_6` source
+  responses and does not include the derived `black` variable.
+- The extract's `black` indicator is tiled from `Q35_2` across respondent waves,
+  preserving missingness for respondents with no race response.
 - Race source selection is restricted to fields matching `^Q35_\\d+$`, avoiding
   accidental capture of similarly named future columns.
 
@@ -1025,7 +1017,7 @@ code revision produced a given `sce_extract.*` file.
 
 ---
 
-## [ ] SCE-019 — Add fast transformation regression tests
+## [x] SCE-019 — Add fast transformation regression tests
 
 **Priority:** P2  
 **Files:** new `tests/` files, `pyproject.toml`, and transformation helpers
@@ -1059,3 +1051,23 @@ script.
 - Tests run without the raw SCE workbooks, existing caches, or Stata.
 - Test runtime is short enough for routine agent use.
 - `uv run ruff check` and `uv run ty check` continue to pass.
+
+### Completion notes
+
+- Split `process_sce()` into eight independently testable domain processors for
+  general expectations, inflation, labor markets, household finances, housing
+  and macro expectations, financial literacy, demographics, and household
+  background. Each processor returns separate full/extract DataFrame fragments;
+  the orchestrator names every intermediate result explicitly before concatenating
+  and applying the common dtype contract.
+- Existing focused fixtures cover household propagation, nullable binary
+  recoding, sign normalization, ACS reference years, rank-table expansion, and
+  metadata coverage without loading raw workbooks or invoking Stata.
+- Inflation, house-price, and race regressions now call their domain processors
+  with minimal panel-indexed inputs. The race fixture verifies that sparse
+  `Q35_*` responses remain in the full output while tiled `black` appears only
+  in the extract, consistent with the revised SCE-010 output semantics.
+- Added a lightweight orchestration fixture that verifies block assembly, column
+  order, index construction, and non-mutation of the raw input.
+- All 86 tests pass in under five seconds with pytest-xdist; `uv run ruff check`
+  and `uv run ty check` both pass.

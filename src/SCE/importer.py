@@ -307,44 +307,12 @@ def apply_sce_output_dtypes(
     return result.astype(dtypes)
 
 
-def process_sce(
+def _process_general_expectations(
     df: pd.DataFrame,
-    decimals_percent: int | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """
-    Process the SCE raw data and create a full dataset and a reduced extract.
-
-    Parameters
-    ----------
-    df
-        Raw SCE DataFrame.
-    decimals_percent
-        If not None, round questions or statistics computed from question that are
-        answered in percent to this many digits.
-
-    Returns
-    -------
-    df_full
-        Processed full dataset.
-    df_extract
-        Processed extract dataset.
-    """
-    logging.getLogger(LOGGER_NAME)
-
-    df = df.rename(columns={"date": VARNAME_WID, "survey_date": "date"})
-    # Panel identifiers are required by the SCE schema and never admit missing values.
-    df = df.astype({VARNAME_ID: "int64", VARNAME_WID: "int64"})
-    df = df.set_index([VARNAME_ID, VARNAME_WID]).sort_index()
-
-    # meta-variables to be copied directly
-    columns = ["tenure", "weight"]
-    df_full = df[columns].copy(deep=True)
-    df_extract = df[columns].copy(deep=True)
-
-    # Convert datetimens[64] to simple dates as the time is always midnight
-    date = df["date"].values.astype("datetime64[D]")  # type: ignore
-    df_full["date"] = date
-    df_extract["date"] = date
+    """Process general financial and economic expectations (Q1--Q6)."""
+    df_full = pd.DataFrame(index=df.index)
+    df_extract = pd.DataFrame(index=df.index)
 
     # Financially better or worse off than 12 months ago?
     df_full["Q1"] = df["Q1"].fillna(-1).astype(np.int8)
@@ -369,6 +337,17 @@ def process_sce(
     # % chance that stock prices will be higher 12 months from now?
     df_full["Q6new"] = df["Q6new"]
     df_extract["prob_stocks_up"] = df_full["Q6new"]
+
+    return df_full, df_extract
+
+
+def _process_inflation(
+    df: pd.DataFrame,
+    decimals_percent: int | None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Process inflation point forecasts and density summaries."""
+    df_full = pd.DataFrame(index=df.index)
+    df_extract = pd.DataFrame(index=df.index)
 
     # --- Inflation ---
 
@@ -464,6 +443,16 @@ def process_sce(
         for col in round_cols:
             df_extract[col] = df_extract[col].round(decimals_percent)
 
+    return df_full, df_extract
+
+
+def _process_labor_market(
+    df: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Process employment, job-search, and earnings questions (Q10--Q24)."""
+    df_full = pd.DataFrame(index=df.index)
+    df_extract = pd.DataFrame(index=df.index)
+
     # --- Employment ---
 
     # Q10 stores each permitted employment status as a separate 0/1 indicator.
@@ -534,10 +523,6 @@ def process_sce(
     # next 3 months
     df_full["Q22new"] = df["Q22new"]
 
-    # Periodically create non-fragmented copies of DataFrames to avoid pandas warnings.
-    df_full = df_full.copy()
-    df_extract = df_extract.copy()
-
     # --- Earnings ---
 
     # Q23v2: Earnings increase/decrease over next 12 months
@@ -553,6 +538,16 @@ def process_sce(
     d = df.filter(regex="Q24_.*", axis=1)
     columns = d.columns.to_list()
     df_full[columns] = df[columns]
+
+    return df_full, df_extract
+
+
+def _process_household_finances(
+    df: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Process household finances, spending, taxes, and credit (Q25--Q30)."""
+    df_full = pd.DataFrame(index=df.index)
+    df_extract = pd.DataFrame(index=df.index)
 
     # Q25v2: Change in overall household income
     df_full["Q25v2"] = df["Q25v2"]
@@ -599,6 +594,16 @@ def process_sce(
     df_full["Q30new"] = df["Q30new"]
     df_extract["prob_miss_paym_3m"] = df_full["Q30new"]
 
+    return df_full, df_extract
+
+
+def _process_housing_and_macro(
+    df: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Process house-price and government-debt expectations (Q31, C1--C3)."""
+    df_full = pd.DataFrame(index=df.index)
+    df_extract = pd.DataFrame(index=df.index)
+
     # --- House prices ---
 
     # Q31v2: nationwide house prices increase/decrease?
@@ -635,9 +640,15 @@ def process_sce(
 
     df_extract["govt_debt_change"] = df_full[varname]
 
-    # Periodically create non-fragmented copies of DataFrames to avoid pandas warnings.
-    df_full = df_full.copy()
-    df_extract = df_extract.copy()
+    return df_full, df_extract
+
+
+def _process_financial_literacy(
+    df: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Process numerical and financial literacy questions."""
+    df_full = pd.DataFrame(index=df.index)
+    df_extract = pd.DataFrame(index=df.index)
 
     # --- Numerical literacy questions (new respondents only) ---
 
@@ -705,6 +716,16 @@ def process_sce(
         np.nan,
     )
 
+    return df_full, df_extract
+
+
+def _process_demographics(
+    df: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Process initial respondent demographics (Q32--Q37)."""
+    df_full = pd.DataFrame(index=df.index)
+    df_extract = pd.DataFrame(index=df.index)
+
     # --- Demographic questions (new respondents only) ---
 
     # Q32: current age at first interview (asked of new respondents only).
@@ -731,7 +752,6 @@ def process_sce(
     d = df.filter(regex=r"^Q35_\d+$", axis=1)
     races = tile_const(d, VARNAME_ID, "Int8")
     df_full = pd.concat((df_full, d), axis=1)
-    df_full["black"] = races["Q35_2"]
     df_extract["black"] = races["Q35_2"]
 
     # Q36: highest education level — codes 1–8 map to specific levels;
@@ -762,6 +782,16 @@ def process_sce(
 
     # Q37: How long working at current job? (categorical)
     df_full["Q37"] = df["Q37"]
+
+    return df_full, df_extract
+
+
+def _process_household_background(
+    df: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Process household background and repeat-interview updates (Q38--D6)."""
+    df_full = pd.DataFrame(index=df.index)
+    df_extract = pd.DataFrame(index=df.index)
 
     # Q38: Initial question: Married or living with partner?
     # NOTE: Will be updated for later waves below
@@ -878,6 +908,86 @@ def process_sce(
     df_full["Q47"] = merge_if_na(df_full["Q47"], df["D6"])
     df_extract["hh_inc_bin"] = df_full["Q47"]
 
+    return df_full, df_extract
+
+
+def process_sce(
+    df: pd.DataFrame,
+    decimals_percent: int | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Process raw SCE data into the full and reduced extract datasets.
+
+    Parameters
+    ----------
+    df
+        Raw SCE DataFrame.
+    decimals_percent
+        If not None, round percent-valued inflation questions and statistics to
+        this many digits.
+
+    Returns
+    -------
+    df_full
+        Processed full dataset containing curated source-named variables.
+    df_extract
+        Reduced dataset containing descriptively named derived variables.
+    """
+    df = df.rename(columns={"date": VARNAME_WID, "survey_date": "date"})
+    # Panel identifiers are required by the SCE schema and never admit missing values.
+    df = df.astype({VARNAME_ID: "int64", VARNAME_WID: "int64"})
+    df = df.set_index([VARNAME_ID, VARNAME_WID]).sort_index()
+
+    # Common meta-variables are present in both outputs.
+    columns = ["tenure", "weight"]
+    df_full_common = df[columns].copy(deep=True)
+    df_extract_common = df[columns].copy(deep=True)
+
+    # Convert datetime64[ns] to dates because the time is always midnight.
+    date = df["date"].values.astype("datetime64[D]")  # type: ignore
+    df_full_common["date"] = date
+    df_extract_common["date"] = date
+
+    full_parts: list[pd.DataFrame] = [df_full_common]
+    extract_parts: list[pd.DataFrame] = [df_extract_common]
+
+    df_full_general, df_extract_general = _process_general_expectations(df)
+    full_parts.append(df_full_general)
+    extract_parts.append(df_extract_general)
+
+    df_full_inflation, df_extract_inflation = _process_inflation(
+        df,
+        decimals_percent,
+    )
+    full_parts.append(df_full_inflation)
+    extract_parts.append(df_extract_inflation)
+
+    df_full_labor, df_extract_labor = _process_labor_market(df)
+    full_parts.append(df_full_labor)
+    extract_parts.append(df_extract_labor)
+
+    df_full_finances, df_extract_finances = _process_household_finances(df)
+    full_parts.append(df_full_finances)
+    extract_parts.append(df_extract_finances)
+
+    df_full_housing, df_extract_housing = _process_housing_and_macro(df)
+    full_parts.append(df_full_housing)
+    extract_parts.append(df_extract_housing)
+
+    df_full_fin_lit, df_extract_fin_lit = _process_financial_literacy(df)
+    full_parts.append(df_full_fin_lit)
+    extract_parts.append(df_extract_fin_lit)
+
+    df_full_demographics, df_extract_demographics = _process_demographics(df)
+    full_parts.append(df_full_demographics)
+    extract_parts.append(df_extract_demographics)
+
+    df_full_household, df_extract_household = _process_household_background(df)
+    full_parts.append(df_full_household)
+    extract_parts.append(df_extract_household)
+
+    df_full = pd.concat(full_parts, axis=1, verify_integrity=True)
+    df_extract = pd.concat(extract_parts, axis=1, verify_integrity=True)
+
     df_full = df_full.sort_index()
     df_extract = df_extract.sort_index()
 
@@ -889,6 +999,7 @@ def process_sce(
         df_extract,
         int8_columns=NULLABLE_INT8_COLUMNS,
     )
+
     return df_full, df_extract
 
 
