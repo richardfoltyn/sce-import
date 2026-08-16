@@ -20,6 +20,7 @@
 - **Dependency & Environment Manager**: [uv](https://github.com/astral-sh/uv)
 - **External Dependencies**:
   - Standard scientific libraries: `pandas >=3.0`, `numpy >=2.5`, `matplotlib >=3.11`, `openpyxl >=3.1`
+  - System utilities: `poppler-utils` (specifically `pdftotext`, required only for processing the PDF questionnaire)
 - **Development Dependencies**:
   - `pydynopt` (located in a sibling directory `../pydynopt` in editable mode; required only for the diagnostic plotting script `src/main_plot_diag.py`)
 
@@ -45,7 +46,16 @@ Optional CLI flags:
 uv run src/main_plot_diag.py
 ```
 
-### 3. Code Quality & Type Checking
+### 3. Extract and Clean Questionnaire Text
+
+To extract the SCE questionnaire from PDF and clean it into a layout-preserved plain-text format:
+```bash
+uv run src/clean_questionnaire.py <path_to_pdf>
+```
+
+This runs `pdftotext -layout` to preserve horizontal layout structure, maps Wingdings radio buttons and checkboxes to standard `( )` and `[ ]` characters, converts non-ASCII punctuation to standard ASCII, strips the licensing preamble, and saves the result to `QUESTIONNAIRE.txt` at the root of the workspace.
+
+### 4. Code Quality & Type Checking
 
 To run code formatting, linting, and type checking:
 ```bash

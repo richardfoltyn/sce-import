@@ -1,0 +1,1772 @@
+                                Survey of Consumer Expectations
+
+
+
+                                        Core Questionnaire
+
+
+
+In this questionnaire, Repeat Respondent signifies a respondent who has already completed a survey
+from a previous month. New Respondent signifies a respondent who has just entered the panel and has
+never taken the survey before.
+
+
+
+Q1intro1-new
+
+We want to learn about your current economic well-being and your outlook for the future. This
+survey takes about 15 to 20 minutes. You will receive $20 for completing the survey.
+
+Most of the questions in this survey have no right or wrong answers - we are interested in your
+views and opinions. Your responses are confidential, and it helps us a great deal if you respond as
+carefully as possible. If you should come to any question that you can't or don't want to answer,
+just click on 'NEXT' until the next question appears.
+
+Thank you for your participation!
+
+
+
+Q1intro1-repeat
+
+We want to learn about your current economic well-being and your outlook for the future. You will
+have seen some of these questions in previous surveys. We are asking them again to find out about
+your current views. This survey takes about 15 to 20 minutes. You will receive $XX for completing
+the survey.
+
+Most of the questions in this survey have no right or wrong answers - we are interested in your
+views and opinions. Your responses are confidential, and it helps us a great deal if you respond as
+carefully as possible. If you should come to any question that you can't or don't want to answer,
+just click on 'NEXT' until the next question appears.
+
+Thank you for your participation!
+
+
+
+Q1
+Do you think you (and any family living with you) are financially better or worse off these days than
+you were 12 months ago?
+Instruction H1.
+
+     Much worse        Somewhat worse         About the        Somewhat better        Much better
+       off (1)             off (2)            same (3)             off (4)              off (5)
+
+          ( )                   ( )                   ( )                    ( )                   ( )
+
+
+If no response: error E1
+
+
+
+Q2
+And looking ahead, do you think you (and any family living with you) will be financially better or
+worse off 12 months from now than you are these days?
+Instruction H1.
+
+
+     Much worse        Somewhat worse         About the        Somewhat better        Much better
+       off (1)             off (2)            same (3)             off (4)              off (5)
+
+          ( )                   ( )                   ( )                    ( )                   ( )
+
+
+If no response: error E1
+
+
+
+Q3intro
+In some of the following questions, we will ask you to think about the percent chance of something
+happening in the future. Your answers can range from 0 to 100, where 0 means there is absolutely
+no chance, and 100 means that it is absolutely certain.
+
+For example, numbers like:
+
+2 and 5 percent may indicate "almost no chance"
+18 percent or so may mean "not much chance"
+47 or 52 percent chance may be a "pretty even chance"
+83 percent or so may mean a "very good chance"
+95 or 98 percent chance may be "almost certain"
+
+
+
+Q3
+For example, what do you think is the percent chance that over the next 12 months you will move
+to a different primary residence (that is, the place where you usually live)?
+Instruction H2.
+
+Ruler & box
+
+If no response: error E1
+
+
+
+Q4intro
+Next, we would like to ask you for your expectations about the economy.
+
+Of course, no one can know the future. These questions have no right or wrong answers - we are
+interested in your views and opinions.
+
+
+
+Q4new
+What do you think is the percent chance that 12 months from now the unemployment rate in the
+U.S. will be higher than it is now?
+Instruction H2.
+Ruler & box
+If no response: error E1
+
+
+
+Q5new
+What do you think is the percent chance that 12 months from now the average interest rate on
+saving accounts will be higher than it is now?
+Instruction H2.
+Ruler & box
+If no response: error E1
+
+
+
+Q6new
+What do you think is the percent chance that 12 months from now, on average, stock prices in the
+U.S. stock market will be higher than they are now?
+Instruction H2.
+Ruler & box
+
+If no response: error E1
+
+
+
+Q8v2
+The next few questions are about inflation. Over the next 12 months, do you think that there
+will be inflation or deflation? (Note: deflation is the opposite of inflation)
+Instruction H8.
+( ) Inflation (1)
+( ) Deflation (the opposite of inflation) (2)
+
+
+If no response: error E1
+
+
+
+Q8v2part2
+What do you expect the rate of [inflation (if Q8v2=inflation)/deflation (if Q8v2=deflation)] to be
+over the next 12 months? Please give your best guess.
+Instruction H9.
+Over the next 12 months, I expect the rate of [inflation/deflation] to be ___ %
+If no response: error E1
+
+
+
+Q9
+Now we would like you to think about the different things that may happen to inflation over the
+next 12 months. We realize that this question may take a little more effort.
+
+In your view, what would you say is the percent chance that, over the next 12 months...
+Instruction H4.
+
+
+ the rate of inflation will be 12% or higher (bin 1)                            _______ percent chance
+
+ the rate of inflation will be between 8% and 12% (bin 2)                       _______ percent chance
+
+ the rate of inflation will be between 4% and 8% (bin 3)                        _______ percent chance
+
+ the rate of inflation will be between 2% and 4% (bin 4)                        _______ percent chance
+
+ the rate of inflation will be between 0% and 2% (bin 5)                        _______ percent chance
+
+ the rate of deflation (opposite of inflation) will be between 0% and 2% (bin   _______ percent chance
+ 6)
+
+ the rate of deflation (opposite of inflation) will be between 2% and 4% (bin    _______ percent chance
+ 7)
+
+ the rate of deflation (opposite of inflation) will be between 4% and 8% (bin    _______ percent chance
+ 8)
+
+ the rate of deflation (opposite of inflation) will be between 8% and 12% (bin   _______ percent chance
+ 9)
+
+ the rate of deflation (opposite of inflation) will be 12% or higher (bin 10)    _______ percent chance
+
+TOTAL                                                                               100
+
+If no response: error E1
+If sum not equal to 100: "Your total adds up to XX" followed by error msg E3.
+
+Note that in the public micro data, the 1-year density mean is coded under Q9_mean. The
+quartiles of each respondent's 1-year ahead inflation density are included as Q9_cent25,
+Q9_cent50 and Q9_cent75. The variance of the density is included as Q9_var, the
+interquantile range is coded under variable Q9_iqr, and the prob of deflation implied by the
+respondent's estimated density is coded under variable Q9_probdeflation.
+
+Q9bv2
+Now we would like you to think about inflation further into the future. Over the 12-month period
+between [Month, Year - 24 months from survey date] and [Month, Year - 36 months from
+survey date], do you think that there will be inflation or deflation?
+Instruction H8.
+
+
+( ) Inflation (1)
+( ) Deflation (the opposite of inflation) (2)
+
+
+If no response: error E1
+
+
+
+Q9bv2part2
+What do you expect the rate of [inflation (if Q9bv2=inflation)/deflation (if Q9bv2=deflation)] to be
+over that period? Please give your best guess.
+Instruction H9.
+
+Over the 12-month period between [Month, Year - 24 months from survey date] and [Month,
+Year - 36 months from survey date],
+ I expect the rate of [inflation/deflation] to be ___ %
+
+
+
+If no response: error E1
+
+
+
+
+Q9c
+And in your view, what would you say is the percent chance that, over the [Month, Year - 24
+months from survey date] and [Month, Year - 36 months from survey date], ...
+Instruction H4.
+ the rate of inflation will be 12% or higher (bin 1)                             _______ percent chance
+
+ the rate of inflation will be between 8% and 12% (bin 2)                        _______ percent chance
+
+ the rate of inflation will be between 4% and 8% (bin 3)                         _______ percent chance
+
+ the rate of inflation will be between 2% and 4% (bin 4)                         _______ percent chance
+
+ the rate of inflation will be between 0% and 2% (bin 5)                         _______ percent chance
+
+ the rate of deflation (opposite of inflation) will be between 0% and 2% (bin    _______ percent chance
+ 6)
+
+ the rate of deflation (opposite of inflation) will be between 2% and 4% (bin    _______ percent chance
+ 7)
+
+ the rate of deflation (opposite of inflation) will be between 4% and 8% (bin    _______ percent chance
+ 8)
+
+ the rate of deflation (opposite of inflation) will be between 8% and 12% (bin   _______ percent chance
+ 9)
+
+ the rate of deflation (opposite of inflation) will be 12% or higher (bin 10)    _______ percent chance
+
+TOTAL                                                                               100
+
+
+
+If no response: error E1
+If sum not equal to 100: "Your total adds up to XX" followed by error msg E3.
+
+
+Note that in the public micro data, the 3-year density mean is coded under Q9c_mean. The
+quartiles of each respondent's 3-year ahead inflation density are included as Q9c_cent25,
+Q9c_cent50 and Q9c_cent75. The variance of the density is included as Q9c_var, the
+
+interquantile range is coded under variable Q9c_iqr, and the prob of deflation implied by the
+respondent's estimated density is coded under variable Q9c_probdeflation.
+
+
+
+Q1A
+Now we would like you to think about inflation further into the future. Over the 12-month period
+between [Month, Year - 48 months from survey date] and [Month, Year - 60 months from
+survey date], do you think that there will be inflation or deflation?
+Instruction H8.
+
+
+( ) Inflation (1)
+( ) Deflation (the opposite of inflation) (2)
+
+
+If no response: error E1
+
+
+
+Q1A_part2
+What do you expect the rate of [inflation (if Q1A=inflation)/deflation (if Q1A=deflation)] to be over
+that period? Please give your best guess.
+Instruction H9.
+
+
+
+
+Over the 12-month period between [Month, Year - 48 months from survey date] and [Month,
+Year - 60 months from survey date],
+ I expect the rate of [inflation/deflation] to be ___ %
+
+
+
+If no response: error E1
+
+
+
+
+Q9new2
+And in your view, what would you say is the percent chance that, over the [Month, Year - 48
+months from survey date] and [Month, Year - 60 months from survey date], ...
+Instruction H4.
+ the rate of inflation will be 12% or higher (bin 1)                       _______ percent chance
+
+ the rate of inflation will be between 8% and 12% (bin 2)                        _______ percent chance
+
+ the rate of inflation will be between 4% and 8% (bin 3)                         _______ percent chance
+
+ the rate of inflation will be between 2% and 4% (bin 4)                         _______ percent chance
+
+ the rate of inflation will be between 0% and 2% (bin 5)                         _______ percent chance
+
+ the rate of deflation (opposite of inflation) will be between 0% and 2% (bin    _______ percent chance
+ 6)
+
+ the rate of deflation (opposite of inflation) will be between 2% and 4% (bin    _______ percent chance
+ 7)
+
+ the rate of deflation (opposite of inflation) will be between 4% and 8% (bin    _______ percent chance
+ 8)
+
+ the rate of deflation (opposite of inflation) will be between 8% and 12% (bin   _______ percent chance
+ 9)
+
+ the rate of deflation (opposite of inflation) will be 12% or higher (bin 10)    _______ percent chance
+
+TOTAL                                                                               100
+
+
+
+If no response: error E1
+If sum not equal to 100: "Your total adds up to XX" followed by error msg E3.
+
+
+Note that in the public micro data, the 5-year density mean is coded under Q9new2_mean.
+The quartiles of each respondent's 5-year ahead inflation density are included as
+Q9new2_cent25, Q9new2_cent50 and Q9new2_cent75. The variance of the density is
+included as Q9new2_var, the interquantile range is coded under variable Q9new2_iqr, and
+the prob of deflation implied by the respondent's estimated density is coded under variable
+Q9new2_probdeflation.
+
+Q10
+What is your current employment situation?
+Instruction H7.
+[ ] Working full-time (for someone or self-employed) (1)
+[ ] Working part-time (for someone or self-employed) (2)
+[ ] Not working, but would like to work (3)
+[ ] Temporarily laid off (4)
+[ ] On sick or other leave (5)
+[ ] Permanently disabled or unable to work (6)
+
+[ ] Retiree or early retiree (7)
+[ ] Student, at school or in training (8)
+[ ] Homemaker (9)
+[ ] Other (please specify)____________ (10)
+
+
+If no response: error E1
+If answer included one of first 2 "Working" options as wel option 3 (not working), show error msg E8
+
+
+
+[if Q10 includes codes 1,2,4 or 5]
+
+       Q11
+       [if Q10 includes 4] Altogether, how many jobs do you have (including the job from which
+       you were temporarily laid off, but excluding volunteer or other unpaid work)?
+       [If Q10 does not include 4] Altogether, how many jobs do you have, excluding volunteer and
+       other unpaid work?
+       Instruction H6.
+
+
+       If no response: error E1
+
+       [if Q11 >1] Q12intro
+       The next questions ask about your main job. By main job we mean the one at which you
+       usually work the most hours.
+
+
+       [if Q11>0] Q12new
+       In your [current/main] job, do you work for someone else or are you self- employed?
+       Instruction H1.
+
+       ( ) Work for someone else
+       ( ) Self-employed
+       If no response: error E1
+
+
+
+[If Q12new == "self-employed"]
+       ES1. What type of work do you do as a self-employed individual?
+
+       Instruction H7
+
+( ) I work as an independent contractor / consultant / freelancer (1)
+
+( ) I own a business (2)
+
+( ) I work in the family business (3)
+
+( ) Other (please specify) _______________ (4)
+
+
+
+
+ES2. [If ES1 = 2] Excluding yourself, how many paid employees does your business
+currently have?
+
+Instruction H6
+
+
+
+____ employees
+
+
+
+
+ES3new. [If ES1 = 2] What do you think is the percent chance that, 12 months from now,
+your business will have more workers than it currently has?
+Instruction H15
+[ruler]
+
+
+
+
+ES4. [if ES1==4 but not ES1==1,2,3] How many hours per week have you worked in your
+["independent contractor job" if ES1==1; "business" If ES1==2 but not ES1==1; "family
+business" if ES1==3 but not ES1==1,2], on average, over the last four weeks?
+
+Instruction H6
+
+
+
+____ hours per week.
+
+
+
+
+ES5. [if ES1==4 but not ES1==1,2,3] And looking ahead, how many hours per week do
+you expect to be working in your ["independent contractor job" if ES1==1; "business" If
+
+       ES1==2 but not ES1==1; "family business" if ES1==3 but not ES1==1,2], on average, over
+       the next four weeks?
+
+       Instruction H6
+
+
+
+       ____ hours per week.
+
+
+
+
+[if Q10 includes codes 1,2,4 or 5 AND if Q12new is NOT self-employed and Q11>0]
+
+       Q13new
+       What do you think is the percent chance that you will lose your ["main" if Q11>1, "current"
+       if Q11=1] job during the next 12 months?
+       Instruction H2.
+       Ruler & box
+
+       If no response: error E1
+
+
+
+[if Q10 includes codes 1,2,4 or 5 AND if Q12new is NOT self-employed and Q11>0]
+
+       Q14new
+       What do you think is the percent chance that you will leave your ["main" if Q11>1, "current"
+       if Q11=1] job voluntarily during the next 12 months?
+       Instruction H2.
+       Ruler & box
+
+
+       If no response: error E1
+
+
+[if Q10 includes code 3 and does not include 4 or 5]
+       Q15
+       You just mentioned that you are currently not working but would like to work. Are you
+       currently looking for a job?
+       Instruction H5.
+       ( ) Yes (1)
+       ( ) No (2)
+
+If no response: error E1
+
+
+
+[if Q15 = Yes]
+
+        Q16
+        How long have you been unemployed?
+        Instruction H6.
+
+
+        I have been unemployed for ___________ month(s)
+        If no response: error E1
+
+
+
+[if Q15 = Yes]
+
+        Q17new
+
+        What do you think is the percent chance that within the coming 12 months, you
+        will find a job that you will accept, considering the pay and type of work?
+        Instruction H2.
+        Ruler & box
+
+
+        If no response: error E1
+
+
+[if Q15 = Yes]
+        Q18new
+        And looking at the more immediate future, what do you think is the percent chance
+        that within the coming 3 months, you will find a job that you will accept,
+        considering the pay and type of work?
+        Instruction H2.
+        Ruler & box
+
+               If no response: error E1
+
+
+
+       [if Q15 = No]
+
+               Q19
+
+               How long have you been out of work?
+               Instruction H6.
+               I have been out of work for ______________________________ month(s)
+
+
+
+
+               If no response: error E1
+
+
+
+[if Q15 = 2 or Q10 includes codes 7,8, or 9 without any other selections or Q11=0]
+
+       Q20new
+
+       What do you think is the percent chance that within the coming 12 months, you will start
+       looking for a job?
+
+       Instruction H2.
+       Ruler & box
+
+
+       If no response: error E1
+
+
+[if Q15 = 2 or Q10 includes codes 7,8, or 9 without any other selections or Q11=0]
+
+       Q21new
+
+       And looking at the more immediate future, what do you think is the percent chance that
+       within the coming 3 months, you will start looking for a job?
+       Instruction H2.
+       Ruler & box
+
+      If no response: error E1
+
+
+
+[if Q12new does NOT equal "self-employed" (as of August 2013) AND if Q10 includes codes
+1,2,4 or 5 and Q11 ne 0]
+
+      Q22new
+
+      Suppose you were to lose your ["main" if Q11>1] job this month. What do you think is the
+      percent chance that within the following 3 months, you will find a job that you will accept,
+      considering the pay and type of work?
+      Instruction H2.
+      Ruler & box
+
+      If no response: error E1
+
+
+
+[if Q10 includes codes 1,2,4 or 5 and Q11 ne 0]
+
+      Q23v2 Please think ahead to 12 months from now. Suppose that you are working in the
+      exact same ["main" if Q11>1] job at the same place you currently work, and working the
+      exact same number of hours. What do you expect to have happened to your earnings on this
+      job, before taxes and deductions?
+      Instruction H8.
+      Twelve months from now, I expect my earnings to have...
+
+
+
+( ) increase by 0% or more (1)
+( ) decrease by 0% or more (3)
+
+
+
+      If no response: error E1
+
+
+
+      [if Q23v2=increase or decrease]
+
+      Q23v2part2
+      By about what percent do you expect your earnings to have [increased/decreased as in
+      Q23]? Please give your best guess.
+      Instruction H9.
+
+       Twelve months from now, I expect my earnings to have [increased/decreased] by __
+ %
+
+
+
+        If no response: error E1
+
+
+
+
+[if Q10 includes codes 1,2,4 or 5 and Q11 ne 0]
+       Q24
+       Suppose again that, 12 months from now, you are working in the exact same ["main" if
+       Q11>1] job at the same place you currently work, and working the exact same number of
+       hours. In your view, what would you say is the percent chance that 12 months from now...
+
+
+       Instruction H4.
+       Your earnings on this job, before taxes and deductions, will have...
+
+
+
+      increased by 12% or more (bin 1)             ______________________________     percent chance
+
+      increased by 8% to 12% (bin 2)               ______________________________     percent chance
+
+      increased by 4% to 8% (bin 3)                ______________________________     percent chance
+
+      increased by 2% to 4% (bin 4)                ______________________________     percent chance
+
+      increased by 0% to 2% (bin 5)                ______________________________     percent chance
+
+      decreased by 0% to 2% (bin 6)                ______________________________     percent chance
+
+      decreased by 2% to 4% (bin 7)                ______________________________     percent chance
+
+      decreased by 4% to 8% (bin 8)                ______________________________     percent chance
+
+      decreased by 8% to 12% (bin 9)               ______________________________     percent chance
+
+      decreased by 12% or more (bin 10)            ______________________________     percent chance
+
+     Total                                                     100
+
+
+
+       If no response: error E1
+       If sum not equal to 100: "Your total adds up to XX" followed by error msg E3
+
+Q25v2
+Next we would like to ask you about your overall household income going forward. By household
+we mean everyone who usually lives in your primary residence (including yourself), excluding
+roommates and renters.
+
+Over the next 12 months, what do you expect will happen to the total income of all members of
+your household (including you), from all sources before taxes and deductions?
+Instruction H8.
+Over the next 12 months, I expect my total household income to...
+
+
+( ) increase by 0% or more (1)
+( ) decrease by 0% or more (3)
+
+
+
+[if increase or decrease in Q25v2]
+
+        Q25v2part2
+
+        By about what percent do you expect your total household income to [increase/decrease as
+        in Q25v2]? Please give your best guess.
+        Instruction H9.
+         Over the next 12 months, I expect my total household income to
+         [increase/decrease] by __ %
+
+
+
+        If no response: error E1
+
+
+
+Q26v2
+Now think about your total household spending, including groceries, clothing, personal care,
+housing (such as rent, mortgage payments, utilities, maintenance, home improvements), medical
+expenses (including health insurance), transportation, recreation and entertainment, education,
+and any large items (such as home appliances, electronics, furniture, or car payments).
+
+Over the next 12 months, what do you expect will happen to the total spending of all members of
+your household (including you)?
+Instruction H8.
+Over the next 12 months, I expect my total household spending to...
+
+
+( ) increase by 0% or more (1)
+
+( ) decrease by 0% or more (3)
+
+
+
+If no response: error E1
+
+
+
+[if increase or decrease in Q26v2]
+
+        Q26v2part2
+
+        By about what percent do you expect your total household spending to [increase/decrease
+        as in Q26v2]? Please give your best guess.
+        Instruction H9.
+         Over the next 12 months, I expect my total household spending to
+         [increase/decrease] by ___ %
+
+
+
+        If no response: error E1
+
+
+
+Q27v2
+Suppose that 12 months from now, your total household income is the same as now. What do you
+expect to have happened to the total amount of taxes you will have to pay, including federal, state
+and local income, property and sales taxes?
+Instruction H8.
+Twelve months from now, I expect my total taxes to have...
+
+
+( ) increase by 0% or more (1)
+( ) decrease by 0% or more (3)
+
+If no response: error E1
+
+
+
+[if increase or decrease in Q27v2]
+
+        Q27v2part2
+        By about what percent do you expect your total taxes to have [increased/decreased as in
+        Q27v2]? Please give your best guess.
+        Instruction H9.
+
+         Twelve months from now, I expect my total taxes to have [increased/decreased] by
+         _____ %
+
+
+
+        If no response: error E1
+
+
+
+Q28
+Compared to 12 months ago, do you think it is generally harder or easier these days for people to
+obtain credit or loans (including credit and retail cards, auto loans, student loans, and mortgages)?
+Instruction H1.
+    Much harder       Somewhat harder      Equally easy/hard      Somewhat easier      Much easier
+       (1)                 (2)                    (3)                  (4)                (5)
+
+          ( )                   ( )                    ( )                     ( )                  ( )
+
+
+If no response: error E1
+
+
+
+Q29
+And looking ahead, do you think that 12 months from now it will generally be harder or easier for
+people to obtain credit or loans (including credit and retail cards, auto loans, student loans, and
+mortgages) than it is these days?
+Instruction H1.
+    Much harder       Somewhat harder      Equally easy/hard      Somewhat easier      Much easier
+       (1)                 (2)                    (3)                  (4)                (5)
+
+          ( )                   ( )                    ( )                     ( )                  ( )
+
+
+If no response: error E1
+
+
+
+Q30new
+What do you think is the percent chance that, over the next 3 months, you will NOT be able to
+make one of your debt payments (that is, the minimum required payments on credit and retail
+cards, auto loans, student loans, mortgages, or any other debt you may have)?
+Instruction H2.
+Ruler & box
+If no response: error E1
+
+Q31v2
+Next we would like you to think about home prices nationwide.
+
+Over the next 12 months, what do you expect will happen to the average home price nationwide?
+Instruction H8.
+Over the next 12 months, I expect the average home price to...
+
+
+( ) increase by 0% or more (1)
+( ) decrease by 0% or more (3)
+
+
+
+If no response: error E1
+
+[if increase or decrease in Q31v2]
+
+        Q31v2part2
+        By about what percent do you expect the average home price to [increase/decrease as in
+        Q31v2]? Please give your best guess.
+        Instruction H9.
+         Over the next 12 months, I expect the average home price to [increase/decrease as
+         in Q31] by ___ %
+
+
+
+All of Section C is seen by Repeat Respondents Only
+
+
+C1
+And in your view, what would you say is the percent chance that, over the next 12 months, the
+average home price nationwide will...
+Instruction H4.
+      increased by 12% or more (bin 1)        ______________________________    percent chance
+
+      increased by 8% to 12% (bin 2)          ______________________________    percent chance
+
+      increased by 4% to 8% (bin 3)           ______________________________    percent chance
+
+      increased by 2% to 4% (bin 4)           ______________________________    percent chance
+
+      increased by 0% to 2% (bin 5)           ______________________________    percent chance
+
+      decreased by 0% to 2% (bin 6)           ______________________________    percent chance
+
+      decreased by 2% to 4% (bin 7)           ______________________________      percent chance
+
+      decreased by 4% to 8% (bin 8)           ______________________________      percent chance
+
+      decreased by 8% to 12% (bin 9)          ______________________________      percent chance
+
+      decreased by 12% or more (bin 10)       ______________________________      percent chance
+
+     Total                                                100
+
+
+
+If no response: error E1
+
+
+
+
+C2
+Now we would like you to think about home prices further into the future. Over the 12-month
+period between [Month, Year - 24 months from survey date] and [Month, Year - 36 months
+from survey date], what do you expect will happen to the average home price nationwide?
+Instruction H8.
+Over the 12-month period between [Month, Year - 24 months from survey date] and [Month,
+Year - 36 months from survey date], I expect the average home price to...
+
+
+( ) increase by 0% or more (1)
+( ) decrease by 0% or more (3)
+
+
+
+If no response: error E1
+
+[if increase or decrease in C2]
+        C2part2
+        By about what percent do you expect the average home price to [increase/decrease as in
+        C2] over that period?
+        Instruction H9.
+        Over the 12-month period between [Month, Year - 24 months from survey date] and
+        [Month, Year - 36 months from survey date],
+        I expect the average home price to [increase/decrease as in C2] by ___%
+        If no response: error E1
+
+
+C3
+
+Next, we would like to ask you for your expectations about the U.S. government debt. Over the next
+12 months, what do you expect will happen to the level of U.S. government debt?
+Instruction H8.
+Over the next 12-months, I expect the level of U.S. government debt to...
+
+
+( ) increase by 0% or more (1)
+( ) decrease by 0% or more (3)
+
+
+If no response: error E1
+
+
+
+
+[if increase or decrease in C3]
+         C3part2
+         By about what percent do you expect the level of U.S. government debt to
+         [decrease/increase as in C3]?
+         Instruction H9.
+
+
+         Over the next 12-months, I expect the level of U.S. government debt to [decrease/increase
+         as in C3] by ___ %.
+
+         If no response: error E1
+
+
+C4info
+Twelve months from now, what do you think will have happened to the price of the following
+items? Instruction H11.
+I expect...
+ The price of a gallon of gas to have increased by (1)        _____ OR decreased by _____      %
+
+ The price of food to have increased by (2)                   _____ OR decreased by _____      %
+
+ The price of medical care to have increased by (3)           _____ OR decreased by _____      %
+
+ The cost of a college education to have increased by (4)     _____ OR decreased by _____      %
+
+ The cost of renting a typical house/apartment to have        _____ OR decreased by _____      %
+ increased by (5)
+
+ The price of gold to have increased by (6)                      _____ OR decreased by _____           %
+
+If no response to all questions: error E9
+
+
+
+
+[QNUM* questions asked ONLY to NEW respondents.]
+If no response: error E1
+
+
+
+QnumIntro. Next we would like to ask you five questions to see how people use numbers in
+everyday life. Please answer the following questions by filling in the blank.
+
+
+
+QNUM1. In a sale, a shop is selling all items at half price. Before the sale, a sofa costs $300. How
+much will it cost in the sale?
+
+$___________
+
+If no response: error E1
+
+
+
+
+QNUM2. Let's say you have $200 in a savings account. The account earns ten per cent interest per
+year. Interest accrues at each anniversary of the account. If you never withdraw money or interest
+payments, how much will you have in the account at the end of two years?
+
+$___________
+
+If no response: error E1
+
+
+
+
+QNUM3. In the BIG BUCKS LOTTERY, the chances of winning a $10.00 prize are 1%. What is your
+best guess about how many people would win a $10.00 prize if 1,000 people each buy a single ticket
+from BIG BUCKS?
+
+___________ people
+
+If no response: error E1
+
+QNUM5. If the chance of getting a disease is 10 percent, how many people out of 1,000 would be
+expected to get the disease?
+
+___________ people
+
+If no response: error E1
+
+
+
+
+QNUM6. The chance of getting a viral infection is 0.0005. Out of 10,000 people, about how many of
+them are expected to get infected?
+
+___________ people
+
+If no response: error E1
+
+
+
+QNUM8. Imagine that the interest rate on your savings account was 1% per year and inflation was
+2% per year. After one year, how much would you be able to buy with the money in this account?
+
+( ) More than today (1)
+
+( ) Exactly the same (2)
+
+( ) Less than today (3)
+
+If no response: error E1
+
+
+
+QNUM9. Please tell me whether this statement is true or false: Buying a single company's stock
+usually provides a safer return than a stock mutual fund.
+
+( ) True (1)
+
+( ) False (2)
+
+
+
+If no response: error E1
+
+[Q32 thru Q47 seen by New Respondently Only]
+
+Q32
+Next, we would like to ask you some questions about you and your household.
+
+What is your current age?
+Instruction H6.
+
+
+ I am ______________________________ years old
+
+
+
+If no response: error E1
+
+
+
+Q33
+What is your gender?
+Instruction H5.
+( ) Female (1)
+( ) Male (2)
+
+If no response: error E1
+
+
+
+Q34
+Do you consider yourself of Hispanic, Latino or Spanish origin?
+Instruction H5.
+( ) Yes (1)
+( ) No (2)
+
+If no response: error E1
+
+
+
+Q35
+Please choose one or more races that you consider yourself to be:
+Instruction H7.
+[ ] White (1)
+[ ] Black or African American (2)
+
+[ ] American Indian or Alaska Native (3)
+[ ] Asian (4)
+[ ] Native Hawaiian or Other Pacific Islander (5)
+[ ] Other (please specify)____________ (6)
+
+
+If no response: error E1
+Show error E5 if checked "other" but did not specify anything
+
+
+Q36
+What is the highest level of school you have completed, or the highest degree you have received?
+Instruction H5.
+( ) Less than high school (1)
+( ) High school diploma (or equivalent) (2)
+( ) Some college but no degree (including academic, vocational, or occupational programs) (3)
+( ) Associate/Junior College degree (including academic, vocational, or occupational programs) (4)
+( ) Bachelor's Degree (For example: BA, BS) (5)
+( ) Master's Degree (For example: MA, MBA, MS, MSW) (6)
+( ) Doctoral Degree (For example: PhD) (7)
+( ) Professional Degree (For example: MD, JD, DDS) (8)
+( ) Other (please specify) __________________________ (9)
+
+
+If no response: error E1
+Show error E6 if checked "other" but did not specify anything
+
+
+
+[if Q10 includes codes 1,2,4 or 5 and Q11 is not equal to 0]
+        Q37
+
+        How long have you been working at your ["main" if Q11>1, "current" if Q11=1] job?
+        Instruction H5.
+        ( ) Less than 1 month (1)
+        ( ) Between 1 and 6 months (2)
+
+        ( ) Between 6 months and 1 year (3)
+        ( ) Between 1 year and 5 years (4)
+        ( ) More than 5 years (5)
+
+        If no response: error E1
+
+
+
+Q38
+Are you currently married or living as a partner with someone?
+Instruction H5.
+( ) Yes (1)
+( ) No (2)
+
+
+If no response: error E1
+
+
+
+Question HH2 Added June 2014
+HH2. [If Q38=1] What is your spouse/partner's current employment situation?
+Instruction H7.
+
+
+( ) Working full-time for someone (1)
+( ) Working part-time for someone (2)
+( ) Self-employed (3)
+( ) Not working, but would like to work (4)
+( ) Temporarily laid off (5)
+( ) On sick or other leave (6)
+( ) Permanently disabled or unable to work (7)
+( ) Retiree or early retiree (8)
+( ) Student, at school or in training (9)
+( ) Homemaker (10)
+( ) Other (please specify)____________ (11)
+
+If no response: error E1
+If answer included one of first 3 "Working" options as well as option 4 (not working), show error msg
+E8
+
+
+
+Q39 (Respondents' state, from Q39 and Q40, can be found in variable _state)
+What is the ZIP code of your primary residence (the place where you usually live)?
+   ______________________________
+
+Show error E2 if zip code entered in Q39 is not a 5 digit number
+
+[NOTE: do not show error E1 if no response]
+
+
+
+[if Q39 was skipped]
+
+        Q40
+        In which state is your primary residence?
+        Instruction H5.
+
+
+( ) AL Alabama (1)
+( ) AK Alaska (2)
+( ) AZ Arizona (3)
+( ) AR Arkansas (4)
+( ) CA California (5)
+( ) CO Colorado (6)
+( ) CT Connecticut (7)
+( ) DC District of Columbia (8)
+( ) DE Delaware (9)
+( ) FL Florida (10)
+( ) GA Georgia (11)
+( ) HI Hawaii (12)
+( ) ID Idaho (13)
+( ) IL Illinois (14)
+( ) IN Indiana (15)
+( ) IA Iowa (16)
+( ) KS Kansas (17)
+( ) KY Kentucky (18)
+( ) LA Louisiana (19)
+( ) ME Maine (20)
+( ) MD Maryland (21)
+( ) MA Massachusetts (22)
+( ) MI Michigan (23)
+( ) MN Minnesota (24)
+
+( ) MS Mississippi (25)
+( ) MO Missouri (26)
+( ) MT Montana (27)
+( ) NC North Carolina (28)
+( ) ND North Dakota (29)
+( ) NE Nebraska (30)
+( ) NV Nevada (31)
+( ) NH New Hampshire (32)
+( ) NJ New Jersey (33)
+( ) NM New Mexico (34)
+( ) NY New York (35)
+( ) OH Ohio (36)
+( ) OK Oklahoma (37)
+( ) OR Oregon (38)
+( ) PA Pennsylvania (39)
+( ) RI Rhode Island (40)
+( ) SC South Carolina (41)
+( ) SD South Dakota (42)
+( ) TN Tennessee (43)
+( ) TX Texas (44)
+( ) UT Utah (45)
+( ) VT Vermont (46)
+( ) VA Virginia (47)
+( ) WA Washington (48)
+( ) WV West Virginia (49)
+( ) WI Wisconsin (50)
+( ) WY Wyoming (51)
+( ) I live outside the US (99)
+
+        If no response: error E1
+
+
+
+Q41
+How many years have you lived at your primary residence?
+Instruction H6.
+   ____ year(s)
+
+
+
+If no response: error E1
+
+
+
+Q42
+How many years in total have you lived in the State in which you currently live?
+Instruction H6.
+
+   _____ year(s)
+
+
+
+If no response: error E1
+
+
+
+Q43
+If Q38=yes: Do you or your spouse/partner own or rent your current primary residence?
+If Q38=no: Do you own or rent your current primary residence?
+Instruction H5.
+( ) Own (1)
+( ) Rent (2)
+( ) Other (please specify)____________ (3)
+
+If no response: error E1
+Show error E7 if checked "other" but did not specify anything
+
+
+[if Q38=Yes and Q43 not equal to "other"]
+        Q43a
+        In whose name is your primary residence ["owned" if Q43=Own/"rented" if Q43=Rent]?
+        Instruction H5.
+        ( ) My name (1)
+        ( ) My spouse/partner's name (2)
+        ( ) Both of our names (3)
+
+        If no response: error E1
+
+
+
+Q44
+If Q38=yes: Do you or your spouse/partner own any other home(s)?
+If Q38=no: Do you own any other home(s)?
+Instruction H5.
+( ) Yes (1)
+( ) No (2)
+
+If no response: error E1
+
+
+
+Q45new
+Please tell us how many of the following people usually live in your primary residence, other than
+yourself (including those who are temporarily away):
+No Instruction
+Spouse/partner (1)                               _______
+
+Children ages 25 or older (2)                    _______
+
+Children ages 18 to 24 (3)                       _______
+
+Children ages 6 to 17 (4)                        _______
+
+Children ages 5 or younger (5)                   _______
+
+Your or your spouse/partner's parents (6)         _______
+
+Other relatives (like siblings or cousins) (7)    _______
+
+Non-relatives (like roommates or renters) (8) _______
+
+__ None of the above, I live alone (9)
+
+If no response: error E1
+
+Added option "None of the above, I live alone" in July 2013
+
+Question Q45b added in April 2015
+
+Q45b
+Next we would like to ask about your health. Would you say your health is excellent, very
+good, good, fair, or poor?
+( ) Excellent (1)
+
+( ) Very good (2)
+
+( ) Good (3)
+
+( ) Fair (4)
+
+( ) Poor (5)
+
+[Questions Q46Intro and Q46 asked only if respondent did NOT choose "None of the
+above, I live alone" in Q45 as of July 2013.]
+
+Q46Intro
+Next, we have some questions about your household. As a reminder, by household we
+mean everyone who usually lives in your primary residence (including yourself), excluding
+those whom you have counted as non-relatives (like roommates and renters).
+
+
+Q46
+On the scale below, which of the following best describes how financial decisions are made in your
+household?
+Instruction H1.
+      Someone else in my               I share financial decisions              I make all
+      household makes all              equally with someone else                 financial
+       financial decisions                  in my household                  decisions myself
+
+                  1             2                  3                  4             5
+
+               ( )                ( )                  ( )                  ( )             ( )
+
+
+If no response: error E1
+
+
+
+Questions QRA1 & QRA2 added in April 2015
+QRA1. On a scale from 1 to 7, how would you rate your willingness to take risks regarding
+financial matters?
+
+
+
+   Not willing at all                         Very willing
+
+           1               2    3      4           5
+
+           ( )               ( )   ( )      ( )            ( )
+
+
+If no response: error E1
+
+
+
+
+QRA2. More generally, how would you rate your willingness to take risks in daily activities?
+
+   Not willing at all                       Very willing
+
+           1               2   3      4           5
+
+           ( )               ( )   ( )      ( )          ( )
+
+
+
+If no response: error E1
+
+
+
+Q47
+Which category represents the total combined pre-tax income of all members of your household
+(including you) during the past 12 months?
+
+ Please include money from all jobs, net income from business, farm or rent, pensions, interest on
+savings or bonds, dividends, social security income, unemployment benefits, Food Stamps, workers
+compensation or disability benefits, child support, alimony, scholarships, fellowships, grants,
+inheritances and gifts, and any other money income received by members of your household who
+are 15 years of age or older.
+Instruction H5.
+
+
+( ) Less than $10,000 (1)
+( ) $10,000 to $19,999 (2)
+( ) $20,000 to $29,999 (3)
+( ) $30,000 to $39,999 (4)
+( ) $40,000 to $49,999 (5)
+( ) $50,000 to $59,999 (6)
+( ) $60,000 to $74,999 (7)
+( ) $75,000 to $99,999 (8)
+( ) $100,000 to $149,999 (9)
+( ) $150,000 to $199,999 (10)
+( ) $200,000 or more (11)
+
+If no response: error E1
+
+
+
+[Questions in section D are asked to repeat respondents only]
+
+D1intro
+
+We would like to ask you some questions about you and your household. As a reminder, by
+household we mean everyone who usually lives in your primary residence (including yourself),
+excluding non-relatives (like roommates and renters).
+
+
+
+D1
+
+Is your current household exactly the same as when you submitted your last survey in [Month
+Year]?
+
+Instruction H5.
+( ) Yes (1)
+( ) No (2)
+
+
+If no response: error E1
+[if answer to D1 is NO]
+        D2new
+        Please tell us how many of the following people usually live in your current primary
+        residence, other than yourself (including those who are temporarily away):
+ No Instruction
+
+
+Spouse/partner (1)                               _______
+
+Children ages 25 or older (2)                    _______
+
+Children ages 18 to 24 (3)                       _______
+
+Children ages 6 to 17 (4)                        _______
+
+Children ages 5 or younger (5)                   _______
+
+Your or your spouse/partner's parents (6)         _______
+
+Other relatives (like siblings or cousins) (7)    _______
+
+Non-relatives (like roommates or renters) (8) _______
+
+__ None of the above, I live alone (9)
+
+
+If no response: error E1
+
+Added option "None of the above, I live alone" in July 2013
+
+
+
+D3
+
+Since [last survey Month Year], have you moved to a different primary residence (the place where
+you usually live)?
+Instruction H5.
+( ) Yes (1)
+( ) No (2)
+
+
+If no response: error E1
+
+
+
+[if answer to D3 is YES] (Respondents' state, from D4 and D5, can be found in _state)
+        D4
+        What is the ZIP code of your current primary residence (the place where you usually live)?
+         ___________________________
+
+
+
+        Show error E2 if zip code entered in Q39 is not a 5 digit number
+
+        [NOTE: do not show error E1 if no response]
+
+        [if D4 was skipped]
+
+                  D5
+                  In which state is your primary residence?
+                  Instruction H5.
+( ) AL Alabama (1)
+( ) AK Alaska (2)
+( ) AZ Arizona (3)
+( ) AR Arkansas (4)
+( ) CA California (5)
+
+( ) CO Colorado (6)
+( ) CT Connecticut (7)
+( ) DC District of Columbia (8)
+( ) DE Delaware (9)
+( ) FL Florida (10)
+( ) GA Georgia (11)
+( ) HI Hawaii (12)
+( ) ID Idaho (13)
+( ) IL Illinois (14)
+( ) IN Indiana (15)
+( ) IA Iowa (16)
+( ) KS Kansas (17)
+( ) KY Kentucky (18)
+( ) LA Louisiana (19)
+( ) ME Maine (20)
+( ) MD Maryland (21)
+( ) MA Massachusetts (22)
+( ) MI Michigan (23)
+( ) MN Minnesota (24)
+( ) MS Mississippi (25)
+( ) MO Missouri (26)
+( ) MT Montana (27)
+( ) NC North Carolina (28)
+( ) ND North Dakota (29)
+( ) NE Nebraska (30)
+( ) NV Nevada (31)
+( ) NH New Hampshire (32)
+( ) NJ New Jersey (33)
+( ) NM New Mexico (34)
+( ) NY New York (35)
+( ) OH Ohio (36)
+( ) OK Oklahoma (37)
+( ) OR Oregon (38)
+( ) PA Pennsylvania (39)
+( ) RI Rhode Island (40)
+( ) SC South Carolina (41)
+( ) SD South Dakota (42)
+( ) TN Tennessee (43)
+( ) TX Texas (44)
+( ) UT Utah (45)
+( ) VT Vermont (46)
+( ) VA Virginia (47)
+( ) WA Washington (48)
+( ) WV West Virginia (49)
+( ) WI Wisconsin (50)
+( ) WY Wyoming (51)
+( ) I live outside the US (99)
+
+
+                If no response: error E1
+
+Question DSAME Added June 2014
+
+DSAME. [if Q11>0 and Q12new = 1] Earlier you said that you are currently employed. Were you
+working in the same [main if Q11>1] job when you submitted your last survey in [Month Year]?
+Instruction H5.
+
+( ) Yes (1)
+( ) Yes, same employer but job duties/title have changed (2)
+( ) No, I work for a different employer now (3)
+( ) I was not employed in [Month Year] (4)
+( ) Other (please specify): _____________
+
+If no response: error E1
+
+
+
+dQ38
+Are you currently married or living as a partner with someone?
+Instruction H5.
+( ) Yes (1)
+( ) No (2)
+
+
+If no response: error E1
+
+
+
+Question dHH2 Added June 2014
+dHH2. [If Q38=1] What is your spouse/partner's current employment situation?
+Instruction H7.
+
+
+( ) Working full-time for someone (1)
+( ) Working part-time for someone (2)
+( ) Self-employed (3)
+( ) Not working, but would like to work (4)
+( ) Temporarily laid off (5)
+( ) On sick or other leave (6)
+( ) Permanently disabled or unable to work (7)
+
+( ) Retiree or early retiree (8)
+( ) Student, at school or in training (9)
+( ) Homemaker (10)
+( ) Other (please specify)____________ (11)
+If no response: error E1
+If answer included one of first 3 "Working" options as well as option 4 (not working), show error msg
+E8
+
+
+D6
+
+Which category represents the total combined pre-tax income of all members of your household
+(including you) during the past 12 months?
+
+Please include money from all jobs, net income from business, farm or rent, pensions, interest on
+savings or bonds, dividends, social security income, unemployment benefits, Food Stamps, workers
+compensation or disability benefits, child support, alimony, scholarships, fellowships, grants,
+inheritances and gifts, and any other money income received by members of your household who
+are 15 years of age or older.
+
+
+
+Instruction H5.
+
+
+
+( ) Less than $10,000 (1)
+( ) $10,000 to $19,999 (2)
+( ) $20,000 to $29,999 (3)
+( ) $30,000 to $39,999 (4)
+( ) $40,000 to $49,999 (5)
+( ) $50,000 to $59,999 (6)
+( ) $60,000 to $74,999 (7)
+( ) $75,000 to $99,999 (8)
+( ) $100,000 to $149,999 (9)
+( ) $150,000 to $199,999 (10)
+( ) $200,000 or more (11)
+
+If no response: error E1
+
+Q48
+Could you tell us how interesting or uninteresting you found the questions in this survey?
+Instruction H1.
+
+
+          Very              Somewhat       Neither interesting or     Somewhat            Very
+      uninteresting        uninteresting       uninteresting          interesting      interesting
+           (1)                  (2)                 (3)                   (4)              (5)
+
+           ( )                    ( )                    ( )                    ( )                  ( )
+
+
+If no response: error E1
+
+
+
+Q49
+Do you have any other comments about the survey or the survey experience?
+
+Please type these in the box below.
+
+
+
+
+Endinfo
+Thank you for taking the time to complete this survey. Your responses will provide invaluable
+insights into the well-being of U.S. consumers.
+
+
+Survey_date
+
+Date that respondent completed the survey. If the window during which a respondent filled out the
+survey spans more than one calendar day, the day of survey completion is reported.
+
+Errors
+
+
+E1. Your answers are important to us. Please provide an answer even if you are not sure.
+
+
+
+E2. Please enter a 5-digit zip code.
+
+
+
+E3. Please change the numbers in the table so they add up to 100.
+
+
+
+E4. You did not specify your employment situation under "Other". Please provide an answer even if
+you are not sure.
+
+
+
+E5. You did not specify your race under "Other". Please provide an answer even if you are not sure.
+
+
+
+E6. You did not specify your schooling/degree under "Other". Please provide an answer even if you
+are not sure.
+
+
+
+E7. You did not specify anything under "Other". Please provide an answer even if you are not sure.
+
+
+
+E8. Please change your answer: you cannot choose both "working/employed" and "not working but
+would like to work".
+
+
+
+E9. Please provide an answer for each item even if you are not sure.
+
+Instructions (show in italics)
+
+
+
+H1. Please select only one.
+
+H2. Please enter your answer in the box on the left or by clicking on the scale below.
+
+
+H3. Please enter a number in one of the boxes below. The number you enter can be greater than 0
+or equal to 0.
+
+H4. (Please note: The numbers need to add up to 100.)
+
+H5. Please select only one.
+
+H6. Please enter a number in the box below.
+
+
+
+H7. Please select all that apply.
+
+H8. Please choose one.
+
+H9. Please enter a number greater than 0 or equal to 0.
+
+H10. Please enter a number greater than 0.
+
+H11. For each item, please enter a number in only one of the two boxes. You can enter any number
+greater than 0 or equal to 0.
+
+
+
+H12. Please enter a number in each box
+
+
+
+H13. Please answer in the box below
+
+
+
+H14. Please choose one for each item listed.
+
+
+
+H15. Please enter your answer by clicking on the scale below or entering your response in the box
+to the right of the scale
+
+
+
+H16. Rank each reason on a 1-5 scale, where 1 is not important at all; 5 is very important
+
+H17. Please enter a number in the box below.
+
+
+
+H18. Please enter a percentage in the box below.
+
+
+
+
+For all errors except E2:
+
+Show error as shown below followed by: "Otherwise click NEXT to continue."

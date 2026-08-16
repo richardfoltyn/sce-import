@@ -31,3 +31,7 @@
 
 - A Stata installation should be available in `/opt/stata/19/stata-se` or similar.
 - Ask for approval before running Stata, a static code analysis usually is good enough.
+
+## Questionnaire
+
+- The processed, layout-preserved, and cleaned text of the Survey of Consumer Expectations (SCE) questionnaire is located at [`QUESTIONNAIRE.txt`](QUESTIONNAIRE.txt) in the workspace root.
