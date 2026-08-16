@@ -17,7 +17,12 @@ from pathlib import Path
 import pandas as pd
 
 from env import EnvConfig, add_logfile
-from SCE.annotations import VALUE_LABELS, VARIABLE_LABELS
+from SCE.annotations import (
+    VALUE_LABELS,
+    VARIABLE_LABELS,
+    VARIABLE_LABELS_FULL,
+    check_label_coverage,
+)
 from SCE.constants import VARNAME_ID
 from SCE.importer import merge_inc_rank, process_sce
 
@@ -93,6 +98,8 @@ def apply_metadata(
     df: pd.DataFrame,
     variable_labels: dict[str, str],
     value_labels: dict[str, dict[int, str]],
+    *,
+    output_name: str,
 ) -> pd.DataFrame:
     """Attach variable and value label metadata to a processed SCE output.
 
@@ -104,6 +111,8 @@ def apply_metadata(
         Mapping from column name (or index level name) to descriptive label.
     value_labels
         Mapping from column name to a ``{code: label}`` dict of value labels.
+    output_name
+        Dataset name used in coverage errors.
 
     Returns
     -------
@@ -124,6 +133,11 @@ def apply_metadata(
     all_names: set[str] = set(df.columns.tolist())
     if df.index.names:
         all_names.update(str(n) for n in df.index.names if n is not None)
+
+    unlabeled, _ = check_label_coverage(all_names, variable_labels)
+    if unlabeled:
+        names = ", ".join(sorted(unlabeled))
+        raise ValueError(f"{output_name} output fields without labels: {names}")
 
     present_var = {k: v for k, v in variable_labels.items() if k in all_names}
     # Value labels only apply to data columns, not index levels.
@@ -349,8 +363,18 @@ def main(econf: EnvConfig) -> None:
     )
 
     # Attach variable/value label metadata so both Pickle and Stata exports carry it.
-    df_full = apply_metadata(df_full, VARIABLE_LABELS, VALUE_LABELS)
-    df_extract = apply_metadata(df_extract, VARIABLE_LABELS, VALUE_LABELS)
+    df_full = apply_metadata(
+        df_full,
+        VARIABLE_LABELS_FULL,
+        VALUE_LABELS,
+        output_name="full",
+    )
+    df_extract = apply_metadata(
+        df_extract,
+        VARIABLE_LABELS,
+        VALUE_LABELS,
+        output_name="extract",
+    )
 
     # --- Sample summary report ---
 

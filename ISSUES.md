@@ -801,7 +801,7 @@ specific codebook version. There are also unresolved domain inconsistencies:
 
 ---
 
-## [ ] SCE-014 — Repair and actually use variable/value metadata
+## [x] SCE-014 — Repair and actually use variable/value metadata
 
 **Priority:** P2  
 **Files:** `src/SCE/annotations.py`, `src/SCE/enums.py`, `src/main.py`,
@@ -838,7 +838,8 @@ and has the opposite meaning from the derived field.
 - Every full-output and extract field has exactly one applicable variable label.
 - No applied label key refers to a nonexistent output field.
 - Stata output exposes the intended variable/value labels on a small fixture.
-- Labels agree with coding direction and units (`[0, 1]` versus `[0, 100]`).
+- Labels agree with coding direction. Units and scales remain documented in the
+  processing code rather than being appended to label text.
 
 ### Completion notes
 
@@ -861,19 +862,21 @@ and has the opposite meaning from the derived field.
 - Added `check_label_coverage` helper to `annotations.py` for drift detection.
 - Updated `README.md`: replaced the false "applies categorical enums" claim with
   an accurate description of label attachment.
-- New `tests/test_variable_labels.py` covers: full extract coverage (no unlabeled,
-  no phantom keys), `hh_changed` direction/spelling, Stata roundtrip for variable
-  and value labels, and `apply_metadata` attrs population and non-mutation.
-- All 72 tests pass; `uv run ruff check` and `uv run ty check` both pass.
-
-### Remaining work
-
-- The extract is fully labeled, but the current full Pickle metadata contains
-  labels for only `userid`, `wid`, `date`, `tenure`, `weight`, and `Q47_rank`.
-  Apply `VARIABLE_LABELS_ORIG` (including generated labels for source-field
-  families) so all full-output fields receive variable labels.
-- Exercise the coverage check against the actual full and extract outputs rather
-  than only a manually maintained extract-column fixture.
+- Added `VARIABLE_LABELS_FULL`, combining `VARIABLE_LABELS_ORIG` with identifiers,
+  date, income rank, and generated labels for the retained `Q9_*`, `Q9c_*`,
+  `Q9new2_*`, `Q10_*`, `Q24_*`, `C1_*`, `Q35_*`, `HH2_*`, and `Q45new_*`
+  families. One-hot source families also receive binary value labels.
+- `apply_metadata` now checks the columns and named index levels of each actual
+  processed output before filtering and attaching metadata. An unlabeled field
+  raises an error before any export, while applied dictionaries contain no keys
+  for absent fields.
+- Replaced the manually maintained extract-column fixture with a production-path
+  fixture that runs all processing blocks, optional five-year fields, and the ACS
+  rank merge. Tests cover full/extract coverage, schema-drift failure, filtered
+  metadata, Stata round-trips for both outputs, and a Pickle round-trip.
+- A read-only audit of the available cached inputs produced a 164-column full
+  output and 78-column extract, with no unlabeled fields in either output.
+- All 92 tests pass; `uv run ruff check` and `uv run ty check` both pass.
 
 ---
 

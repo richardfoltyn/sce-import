@@ -3,6 +3,7 @@ Variable labels mappings for original and processed SCE survey variables.
 
 - VARIABLE_LABELS_ORIG: Raw/original question labels.
 - VARIABLE_LABELS: Modern/clean question labels.
+- VARIABLE_LABELS_FULL: Complete labels for the processed full output.
 - VALUE_LABELS: Categorical value labels for encoded response codes.
 
 Author: Richard Foltyn
@@ -10,7 +11,7 @@ Author: Richard Foltyn
 
 from collections.abc import Iterable
 
-from SCE.enums import INCOME_CATEGORIES, Educ4Enum, WellBeingEnum
+from SCE.enums import INCOME_CATEGORIES, Educ4Enum, EmplStatusEnum, WellBeingEnum
 
 VARIABLE_LABELS_ORIG: dict[str, str] = {
     "tenure": "Tenure on survey",
@@ -96,7 +97,7 @@ VARIABLE_LABELS_ORIG: dict[str, str] = {
     "QRA1": "Willingness to take financial risks?",
     "QRA2": "Willingness to take risks in daily activities?",
     "Q47": "Total HH income during past 12 months",
-    "D1": "HH unchaged from last survey",
+    "D1": "Current HH same as at last survey?",
     "D2new": "How many people currently live in your household?",
     "D3": "Moved since last survey?",
     "D4": "What is your current ZIP code?",
@@ -214,12 +215,138 @@ VARIABLE_LABELS: dict[str, str] = {
 }
 
 
+_DENSITY_BIN_DESCRIPTIONS: dict[int, str] = {
+    1: "+12% or more",
+    2: "+8% to +12%",
+    3: "+4% to +8%",
+    4: "+2% to +4%",
+    5: "0% to +2%",
+    6: "-2% to 0%",
+    7: "-4% to -2%",
+    8: "-8% to -4%",
+    9: "-12% to -8%",
+    10: "-12% or less",
+}
+
+_PARTNER_EMPLOYMENT_CATEGORIES: dict[int, str] = {
+    1: "Working full-time for someone",
+    2: "Working part-time for someone",
+    3: "Self-employed",
+    4: "Not working, but would like to work",
+    5: "Temporarily laid off",
+    6: "On sick or other leave",
+    7: "Permanently disabled or unable to work",
+    8: "Retiree or early retiree",
+    9: "Student, at school or in training",
+    10: "Homemaker",
+    11: "Other",
+}
+
+_RACE_CATEGORIES: dict[int, str] = {
+    1: "White",
+    2: "Black or African American",
+    3: "American Indian or Alaska Native",
+    4: "Asian",
+    5: "Native Hawaiian or Other Pacific Islander",
+    6: "Other",
+}
+
+_HOUSEHOLD_COMPOSITION_CATEGORIES: dict[int, str] = {
+    1: "Spouse/partner",
+    2: "Children age 25 or older",
+    3: "Children age 18 to 24",
+    4: "Children age 6 to 17",
+    5: "Children age 5 or younger",
+    6: "Respondent's or partner's parents",
+    7: "Other relatives",
+    8: "Non-relatives",
+    9: "Lives alone",
+}
+
+_DENSITY_SUMMARY_LABELS: dict[str, str] = {
+    "cent25": "25th percentile",
+    "cent50": "Median",
+    "cent75": "75th percentile",
+    "iqr": "IQR",
+    "mean": "Mean",
+    "probdeflation": "Probability of a negative change",
+    "var": "Variance",
+}
+
+_FULL_FAMILY_LABELS: dict[str, str] = {
+    **{
+        f"Q9_bin{code}": f"1y inflation rate: P({description})"
+        for code, description in _DENSITY_BIN_DESCRIPTIONS.items()
+    },
+    **{
+        f"Q9c_bin{code}": f"3y inflation rate: P({description})"
+        for code, description in _DENSITY_BIN_DESCRIPTIONS.items()
+    },
+    **{
+        f"Q9new2_bin{code}": f"5y inflation rate: P({description})"
+        for code, description in _DENSITY_BIN_DESCRIPTIONS.items()
+    },
+    **{
+        f"Q9new2_{suffix}": f"5y inflation density: {description}"
+        for suffix, description in _DENSITY_SUMMARY_LABELS.items()
+    },
+    **{
+        f"Q10_{int(status)}": f"Employment status: {status}"
+        for status in EmplStatusEnum
+    },
+    **{
+        f"Q24_bin{code}": f"12m earnings change: P({description})"
+        for code, description in _DENSITY_BIN_DESCRIPTIONS.items()
+    },
+    **{
+        f"Q24_{suffix}": f"Earnings density: {description}"
+        for suffix, description in _DENSITY_SUMMARY_LABELS.items()
+    },
+    **{
+        f"C1_bin{code}": f"1y house-price change: P({description})"
+        for code, description in _DENSITY_BIN_DESCRIPTIONS.items()
+    },
+    **{
+        f"C1_{suffix}": f"House-price density: {description}"
+        for suffix, description in _DENSITY_SUMMARY_LABELS.items()
+    },
+    **{
+        f"Q35_{code}": f"Race selected: {description}"
+        for code, description in _RACE_CATEGORIES.items()
+    },
+    **{
+        f"HH2_{code}": f"Partner employment: {description}"
+        for code, description in _PARTNER_EMPLOYMENT_CATEGORIES.items()
+    },
+    **{
+        f"Q45new_{code}": f"HH composition: {description}"
+        for code, description in _HOUSEHOLD_COMPOSITION_CATEGORIES.items()
+    },
+}
+
+# The full output retains source-style question names, while its panel identifiers,
+# interview date, and ACS rank are introduced by processing. Keep the two namespaces
+# separate so full-output coverage does not depend on the reduced-extract labels.
+VARIABLE_LABELS_FULL: dict[str, str] = {
+    **VARIABLE_LABELS_ORIG,
+    **_FULL_FAMILY_LABELS,
+    **{name: VARIABLE_LABELS[name] for name in ("userid", "wid", "date", "Q47_rank")},
+}
+
+
 # Financial well-being (Q1/Q2): codes 1-5 per WellBeingEnum.
 # Code -1 is used as a fill-in placeholder for structurally missing responses.
 _WELL_BEING_LABELS: dict[int, str] = {int(e): str(e) for e in WellBeingEnum}
 
 # Binary 0/1 indicators derived from yes/no questionnaire responses
 _BINARY_LABELS: dict[int, str] = {0: "No", 1: "Yes"}
+
+_FULL_BINARY_INDICATORS: frozenset[str] = frozenset(
+    {f"Q10_{code}" for code in range(1, 11)}
+    | {f"Q35_{code}" for code in range(1, 7)}
+    | {f"HH2_{code}" for code in range(1, 12)}
+    | {"Q45new_9"}
+)
 
 # Credit conditions (Q28/Q29): 1=Much harder ... 5=Much easier.
 # Verified against questionnaire text (Q28, Q29).
@@ -245,6 +372,7 @@ _HEALTH_LABELS: dict[int, str] = {
 _EDUC4_LABELS: dict[int, str] = {int(e): str(e) for e in Educ4Enum}
 
 VALUE_LABELS: dict[str, dict[int, str]] = {
+    **dict.fromkeys(_FULL_BINARY_INDICATORS, _BINARY_LABELS),
     # Financial well-being (code -1 = fillna placeholder for structurally missing)
     "Q1": _WELL_BEING_LABELS,
     "financial_past_12m": _WELL_BEING_LABELS,

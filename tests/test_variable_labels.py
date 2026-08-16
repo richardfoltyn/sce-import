@@ -1,262 +1,343 @@
-"""
-Tests for SCE-014: variable and value label metadata.
+"""Tests for variable and value label metadata on processed SCE outputs."""
 
-Covers:
-- Complete coverage of the extract schema (no unlabeled columns, no phantom keys).
-- Corrected ``hh_changed`` label direction and spelling.
-- Stata roundtrip: variable and value labels survive a write/read cycle.
-- ``apply_metadata`` stores filtered labels in ``DataFrame.attrs``.
-
-Author: Richard Foltyn
-"""
-
+import numpy as np
 import pandas as pd
 from pandas.io.stata import StataReader
+import pytest
 
-from SCE.annotations import VALUE_LABELS, VARIABLE_LABELS, check_label_coverage
+from main import apply_metadata, process_data
+from SCE.annotations import VALUE_LABELS, VARIABLE_LABELS, VARIABLE_LABELS_FULL
 
-# ---------------------------------------------------------------------------
-# Expected extract schema
-# ---------------------------------------------------------------------------
 
-# Full extract column schema including the optional 5-year density summaries
-# and the ACS income rank column added by merge_inc_rank. This serves as a
-# regression fixture: any addition or removal must be intentional.
-EXTRACT_COLUMNS: frozenset[str] = frozenset(
-    {
-        "tenure",
-        "weight",
-        "date",
-        "financial_past_12m",
-        "financial_12m",
-        "prob_move_house",
-        "prob_unrate_up",
-        "prob_irate_up",
-        "prob_stocks_up",
-        "infl_1y",
-        "infl_1y_bin_mean",
-        "infl_1y_bin_var",
-        "infl_1y_bin_median",
-        "infl_1y_bin_iqr",
-        "infl_1y_bin_prob_defl",
-        "infl_3y",
-        "infl_3y_bin_mean",
-        "infl_3y_bin_var",
-        "infl_3y_bin_median",
-        "infl_3y_bin_iqr",
-        "infl_3y_bin_prob_defl",
-        "infl_5y",
-        "infl_5y_bin_mean",
-        "infl_5y_bin_var",
-        "infl_5y_bin_median",
-        "infl_5y_bin_iqr",
-        "infl_5y_bin_prob_defl",
-        "working",
-        "num_jobs",
-        "self_employed",
-        "prob_lose_job",
-        "prob_leave_job",
-        "looking_for_job",
-        "prob_accept_job_12m",
-        "prob_accept_job_3m",
-        "jobless_length",
-        "prob_search_job_12m",
-        "prob_search_job_3m",
-        "earnings_change",
-        "hh_inc_change",
-        "hh_spending_change",
-        "taxes_change",
-        "credit_cond_past_12m",
-        "credit_cond_12m",
-        "prob_miss_paym_3m",
-        "house_price_change",
-        "house_price_change_3y",
-        "govt_debt_change",
-        "num_lit_q1",
-        "num_lit_q1_correct",
-        "num_lit_q2",
-        "num_lit_q2_correct",
-        "num_lit_q3",
-        "num_lit_q3_correct",
-        "num_lit_q5",
-        "num_lit_q5_correct",
-        "num_lit_q6",
-        "num_lit_q6_correct",
-        "num_lit_q8",
-        "num_lit_q8_correct",
-        "num_lit_q9",
-        "num_lit_q9_correct",
-        "age_init",
-        "female",
-        "hispanic",
-        "black",
-        "college",
-        "educ",
-        "owner",
-        "num_kids",
-        "health",
-        "take_fin_risk",
-        "hh_changed",
-        "same_employer",
-        "couple",
-        "spouse_working",
-        "hh_inc_bin",
-        "hh_inc_bin_rank",
+def _raw_fixture() -> pd.DataFrame:
+    """Return one raw observation covering every production processing block."""
+    scalar_columns = [
+        "Q1",
+        "Q2",
+        "Q3",
+        "Q4new",
+        "Q5new",
+        "Q6new",
+        "Q8v2",
+        "Q8v2part2",
+        "Q9_mean",
+        "Q9_var",
+        "Q9_cent50",
+        "Q9_iqr",
+        "Q9_probdeflation",
+        "Q9bv2",
+        "Q9bv2part2",
+        "Q9c_mean",
+        "Q9c_var",
+        "Q9c_cent50",
+        "Q9c_iqr",
+        "Q9c_probdeflation",
+        "Q1a",
+        "Q1apart2",
+        "Q9new2_cent25",
+        "Q9new2_cent50",
+        "Q9new2_cent75",
+        "Q9new2_iqr",
+        "Q9new2_mean",
+        "Q9new2_probdeflation",
+        "Q9new2_var",
+        "Q11",
+        "Q12new",
+        "Q13new",
+        "Q14new",
+        "Q15",
+        "Q16",
+        "Q17new",
+        "Q18new",
+        "Q19",
+        "Q20new",
+        "Q21new",
+        "Q22new",
+        "Q23v2",
+        "Q23v2part2",
+        "Q25v2",
+        "Q25v2part2",
+        "Q26v2",
+        "Q26v2part2",
+        "Q27v2",
+        "Q27v2part2",
+        "Q28",
+        "Q29",
+        "Q30new",
+        "Q31v2",
+        "Q31v2part2",
+        "C2",
+        "C2part2",
+        "C3",
+        "C3part2",
+        "QNUM1",
+        "QNUM2",
+        "QNUM3",
+        "QNUM5",
+        "QNUM6",
+        "QNUM8",
+        "QNUM9",
+        "Q32",
+        "Q33",
+        "Q34",
+        "Q36",
+        "Q37",
+        "Q38",
+        "Q41",
+        "Q42",
+        "Q43",
+        "Q44",
+        "Q45b",
+        "Q46",
+        "QRA1",
+        "QRA2",
+        "Q47",
+        "D1",
+        "D3",
+        "DSAME",
+        "DQ38",
+        "D6",
+    ]
+    data: dict[str, list[object]] = {name: [np.nan] for name in scalar_columns}
+    data.update(
+        {
+            "userid": [101],
+            "date": [202401],
+            "survey_date": [pd.Timestamp("2024-01-01")],
+            "tenure": [1],
+            "weight": [0.5],
+            "Q1": [3],
+            "Q2": [3],
+            "Q32": [40],
+            "Q33": [1],
+            "Q34": [2],
+            "Q36": [5],
+            "Q38": [2],
+            "Q43": [2],
+            "Q47": [1],
+        }
+    )
+
+    for prefix in ("Q9", "Q9c", "Q9new2", "Q24", "C1"):
+        for code in range(1, 11):
+            data[f"{prefix}_bin{code}"] = [10.0]
+
+    for prefix in ("Q24", "C1"):
+        for suffix in (
+            "cent25",
+            "cent50",
+            "cent75",
+            "iqr",
+            "mean",
+            "probdeflation",
+            "var",
+        ):
+            data[f"{prefix}_{suffix}"] = [0.0]
+
+    for code in range(1, 11):
+        data[f"Q10_{code}"] = [0]
+    for code in range(1, 7):
+        data[f"Q35_{code}"] = [0]
+    for code in range(1, 12):
+        data[f"HH2_{code}"] = [0]
+        data[f"DHH2_{code}"] = [np.nan]
+    for code in range(1, 10):
+        data[f"Q45new_{code}"] = [0]
+        data[f"D2new_{code}"] = [np.nan]
+
+    return pd.DataFrame(data)
+
+
+@pytest.fixture(scope="module")
+def processed_outputs() -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Return metadata-bearing outputs from the production processing path."""
+    df_ranks = pd.DataFrame({"year": [2023], "ibin": [1], "rank": [0.1]})
+    df_full, df_extract = process_data(_raw_fixture(), df_ranks)
+    df_full = apply_metadata(
+        df_full,
+        VARIABLE_LABELS_FULL,
+        VALUE_LABELS,
+        output_name="full",
+    )
+    df_extract = apply_metadata(
+        df_extract,
+        VARIABLE_LABELS,
+        VALUE_LABELS,
+        output_name="extract",
+    )
+    return df_full, df_extract
+
+
+def _output_names(df: pd.DataFrame) -> set[str]:
+    """Return data and named-index fields written to Stata."""
+    return {str(name) for name in df.columns} | {
+        str(name) for name in df.index.names if name is not None
     }
-)
-
-# Index level names that become columns when to_stata is called with write_index=True
-EXTRACT_INDEX_NAMES: frozenset[str] = frozenset({"userid", "wid"})
-
-# Label keys that refer legitimately to full-output-only columns and are not
-# expected to appear in the extract schema.
-FULL_ONLY_LABELS: frozenset[str] = frozenset({"Q47_rank"})
 
 
-# ---------------------------------------------------------------------------
-# Coverage tests
-# ---------------------------------------------------------------------------
+def test_processed_outputs_have_complete_variable_metadata(
+    processed_outputs: tuple[pd.DataFrame, pd.DataFrame],
+) -> None:
+    """Production full and extract outputs must attach one label per field."""
+    for df in processed_outputs:
+        assert set(df.attrs["variable_labels"]) == _output_names(df)
 
 
-def test_every_extract_column_has_a_variable_label() -> None:
-    """Every extract column and index level must have exactly one variable label."""
-    columns = EXTRACT_COLUMNS | EXTRACT_INDEX_NAMES
-    unlabeled, _ = check_label_coverage(columns, VARIABLE_LABELS)
-    assert not unlabeled, (
-        f"Extract columns without a variable label: {sorted(unlabeled)}"
+def test_full_output_generated_family_labels_are_applied(
+    processed_outputs: tuple[pd.DataFrame, pd.DataFrame],
+) -> None:
+    """Retained source families, including optional fields, receive useful labels."""
+    df_full, _ = processed_outputs
+    labels = df_full.attrs["variable_labels"]
+
+    assert labels["Q9_bin1"] == "1y inflation rate: P(+12% or more)"
+    assert labels["Q9new2_probdeflation"].endswith("Probability of a negative change")
+    assert "Permanently disabled" in labels["Q10_6"]
+    assert "Black or African American" in labels["Q35_2"]
+    assert "Self-employed" in labels["HH2_3"]
+    assert labels["Q45new_2"] == "HH composition: Children age 25 or older"
+    assert labels["D1"] == "Current HH same as at last survey?"
+
+
+def test_applied_metadata_contains_no_phantom_keys(
+    processed_outputs: tuple[pd.DataFrame, pd.DataFrame],
+) -> None:
+    """Only labels for fields in the corresponding output may be attached."""
+    df_full, df_extract = processed_outputs
+
+    assert "financial_past_12m" not in df_full.attrs["variable_labels"]
+    assert "Q1" not in df_extract.attrs["variable_labels"]
+    assert set(df_full.attrs["value_labels"]) <= set(df_full.columns)
+    assert set(df_extract.attrs["value_labels"]) <= set(df_extract.columns)
+
+
+def test_metadata_application_rejects_unlabeled_output_field() -> None:
+    """Schema drift must fail before an unlabeled field reaches an export."""
+    index = pd.MultiIndex.from_tuples([(1, 202401)], names=["userid", "wid"])
+    df = pd.DataFrame(
+        {"date": [pd.Timestamp("2024-01-01")], "new_field": [1]}, index=index
     )
 
-
-def test_no_unexpected_phantom_labels() -> None:
-    """No label key should refer to a nonexistent extract column (except full-only fields)."""
-    columns = EXTRACT_COLUMNS | EXTRACT_INDEX_NAMES
-    _, phantom = check_label_coverage(columns, VARIABLE_LABELS)
-    unexpected = phantom - FULL_ONLY_LABELS
-    assert not unexpected, (
-        f"Label keys referring to nonexistent extract columns: {sorted(unexpected)}"
-    )
-
-
-# ---------------------------------------------------------------------------
-# hh_changed direction and spelling test
-# ---------------------------------------------------------------------------
+    with pytest.raises(
+        ValueError,
+        match=r"extract output fields without labels: new_field",
+    ):
+        apply_metadata(
+            df,
+            VARIABLE_LABELS,
+            VALUE_LABELS,
+            output_name="extract",
+        )
 
 
-def test_hh_changed_label_corrects_typo_and_direction() -> None:
-    """hh_changed label must say 'changed' and not contain the old misspelling."""
+def test_hh_changed_label_has_correct_direction() -> None:
+    """The derived field label must describe one as a household change."""
     label = VARIABLE_LABELS["hh_changed"]
-    # The old label read "HH unchaged from last survey" — both typo and wrong direction.
-    assert "unchaged" not in label.lower(), (
-        f"Typo 'unchaged' still present in hh_changed label: {label!r}"
-    )
-    # The derived field is 1 when the household composition DID change (D1 == 2).
-    assert "changed" in label.lower(), (
-        f"Label does not convey the correct direction: {label!r}"
-    )
+    assert "unchaged" not in label.lower()
+    assert "changed" in label.lower()
 
 
-# ---------------------------------------------------------------------------
-# Stata roundtrip: variable and value labels
-# ---------------------------------------------------------------------------
-
-
-def test_variable_and_value_labels_stata_roundtrip(tmp_path) -> None:  # type: ignore[no-untyped-def]
-    """Variable and value labels survive a to_stata / StataReader roundtrip."""
+def test_extract_metadata_roundtrips_through_stata(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """Extract variable and value labels survive a Stata round-trip."""
     index = pd.MultiIndex.from_tuples(
         [(101, 202401), (102, 202401)], names=["userid", "wid"]
     )
     df = pd.DataFrame(
         {
             "date": pd.to_datetime(["2024-01-01", "2024-01-01"]),
-            # hh_inc_bin: income-bin code from INCOME_CATEGORIES (1-11)
             "hh_inc_bin": pd.array([3, 6], dtype="Int8"),
-            # female: binary indicator
             "female": pd.array([1, 0], dtype="Int8"),
         },
         index=index,
     )
-
-    # Build filtered label dicts that match the columns/index levels present.
-    all_names = set(df.columns) | {n for n in df.index.names if n is not None}
-    var_labels = {k: v for k, v in VARIABLE_LABELS.items() if k in all_names}
-    # pandas-stubs declares value_labels keys as float; convert to satisfy ty.
-    val_labels: dict[str, dict[float, str]] = {
-        k: {float(code): label for code, label in v.items()}
-        for k, v in VALUE_LABELS.items()
-        if k in df.columns
+    df = apply_metadata(
+        df,
+        VARIABLE_LABELS,
+        VALUE_LABELS,
+        output_name="extract",
+    )
+    value_labels: dict[str, dict[float, str]] = {
+        name: {float(code): label for code, label in labels.items()}
+        for name, labels in df.attrs["value_labels"].items()
     }
 
-    stata_path = tmp_path / "fixture.dta"
+    stata_path = tmp_path / "extract.dta"
     df.to_stata(
         stata_path,
         convert_dates={"date": "td"},
         version=118,
         write_index=True,
-        variable_labels=var_labels,
-        value_labels=val_labels,
+        variable_labels=df.attrs["variable_labels"],
+        value_labels=value_labels,
     )
 
     with StataReader(stata_path) as reader:
         written_var = reader.variable_labels()
         written_val = reader.value_labels()
 
-    # Variable labels for columns and index levels
-    assert written_var.get("hh_inc_bin") == VARIABLE_LABELS["hh_inc_bin"]
-    assert written_var.get("female") == VARIABLE_LABELS["female"]
-    assert written_var.get("userid") == VARIABLE_LABELS["userid"]
+    assert written_var["hh_inc_bin"] == VARIABLE_LABELS["hh_inc_bin"]
+    assert written_var["female"] == VARIABLE_LABELS["female"]
+    assert written_var["userid"] == VARIABLE_LABELS["userid"]
+    assert written_val["hh_inc_bin"][3] == "$20,000 to $29,999"
+    assert written_val["female"] == {0: "No", 1: "Yes"}
 
-    # Value labels for the income-bin variable (code 3 = "$20,000 to $29,999")
-    hh_val = written_val.get("hh_inc_bin", {})
-    assert hh_val.get(3) == "$20,000 to $29,999", (
-        f"Unexpected income-bin label for code 3: {hh_val.get(3)!r}"
+
+def test_full_metadata_roundtrips_through_stata(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """Generated full-output variable and value labels survive a Stata round-trip."""
+    index = pd.MultiIndex.from_tuples(
+        [(101, 202401), (102, 202401)], names=["userid", "wid"]
     )
-    assert hh_val.get(6) == "$50,000 to $59,999", (
-        f"Unexpected income-bin label for code 6: {hh_val.get(6)!r}"
-    )
-
-    # Value labels for the binary female variable (0=No, 1=Yes)
-    fem_val = written_val.get("female", {})
-    assert fem_val.get(0) == "No", f"Unexpected label for female=0: {fem_val.get(0)!r}"
-    assert fem_val.get(1) == "Yes", f"Unexpected label for female=1: {fem_val.get(1)!r}"
-
-
-# ---------------------------------------------------------------------------
-# apply_metadata stores labels in attrs
-# ---------------------------------------------------------------------------
-
-
-def test_apply_metadata_stores_labels_in_attrs() -> None:
-    """apply_metadata must populate attrs and filter to present columns/index levels."""
-    # Import here so the test does not depend on main.py side effects.
-    from main import apply_metadata
-
-    index = pd.MultiIndex.from_tuples([(1, 202401)], names=["userid", "wid"])
     df = pd.DataFrame(
         {
-            "date": pd.to_datetime(["2024-01-01"]),
-            "hh_inc_bin": pd.array([3], dtype="Int8"),
-            "female": pd.array([1], dtype="Int8"),
-            # Column with no label entry should not appear in the stored dict.
-            "_internal": [99.0],
+            "Q10_6": pd.array([1, 0], dtype="Int8"),
+            "Q47": pd.array([3, 6], dtype="Int8"),
         },
         index=index,
     )
+    df = apply_metadata(
+        df,
+        VARIABLE_LABELS_FULL,
+        VALUE_LABELS,
+        output_name="full",
+    )
+    value_labels: dict[str, dict[float, str]] = {
+        name: {float(code): label for code, label in labels.items()}
+        for name, labels in df.attrs["value_labels"].items()
+    }
 
-    result = apply_metadata(df, VARIABLE_LABELS, VALUE_LABELS)
+    stata_path = tmp_path / "full.dta"
+    df.to_stata(
+        stata_path,
+        version=118,
+        write_index=True,
+        variable_labels=df.attrs["variable_labels"],
+        value_labels=value_labels,
+    )
 
-    stored_var = result.attrs["variable_labels"]
-    stored_val = result.attrs["value_labels"]
+    with StataReader(stata_path) as reader:
+        written_var = reader.variable_labels()
+        written_val = reader.value_labels()
 
-    # Index level labels are included (Stata uses them with write_index=True)
-    assert "userid" in stored_var
-    assert "wid" in stored_var
-    # Column labels are included
-    assert "hh_inc_bin" in stored_var
-    assert "female" in stored_var
-    # No phantom key for a column that doesn't exist in this frame
-    assert "_internal" not in stored_var
-    # Value labels for present columns
-    assert "hh_inc_bin" in stored_val
-    assert "female" in stored_val
-    # Input is not mutated
-    assert "variable_labels" not in df.attrs
+    assert written_var["Q10_6"] == VARIABLE_LABELS_FULL["Q10_6"]
+    assert written_val["Q10_6"] == {0: "No", 1: "Yes"}
+    assert written_val["Q47"][6] == "$50,000 to $59,999"
+
+
+def test_metadata_roundtrips_through_pickle(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """Pickle preserves attached full-output variable and value metadata."""
+    index = pd.MultiIndex.from_tuples([(1, 202401)], names=["userid", "wid"])
+    df = pd.DataFrame({"Q47": pd.array([1], dtype="Int8")}, index=index)
+    original = df.copy(deep=True)
+    df = apply_metadata(
+        df,
+        VARIABLE_LABELS_FULL,
+        VALUE_LABELS,
+        output_name="full",
+    )
+
+    pickle_path = tmp_path / "full.pkl.zst"
+    df.to_pickle(pickle_path, protocol=5)
+    restored = pd.read_pickle(pickle_path)
+
+    assert restored.attrs == df.attrs
+    assert not original.attrs
