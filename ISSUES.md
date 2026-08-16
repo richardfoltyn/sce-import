@@ -554,39 +554,56 @@ future source would then produce inconsistent full and extract outputs.
 
 ---
 
-## [ ] SCE-010 — Store tiled race indicators in the full output
+## [x] SCE-010 — Store tiled derived race indicators in the full output
 
 **Priority:** P1  
-**Files:** `src/SCE/importer.py` (lines 465–469)
+**Files:** `src/SCE/importer.py` (race-processing block)
 
 ### Problem
 
-The importer correctly computes tiled race responses:
+The importer correctly computes respondent-level tiled race responses:
 
 ```python
 races = tile_const(d, VARNAME_ID, np.uint8)
 ```
 
-but concatenates the original sparse `d` into `df_full` instead of `races`.
-Consequently, `black` in the extract is tiled while `Q35_1`–`Q35_6` in the full
-output are observed only on the initial interview. In the current full output,
-`Q35_2` is non-missing on only 23,885 of 180,268 rows, whereas the tiled result
-would be missing on only the six waves belonging to the respondent with no race
-response.
+but uses them only to create `black` in the extract. The full output contains the
+original sparse `Q35_1`–`Q35_6` responses, observed at the initial interview,
+but does not contain the tiled derived variable. Users of the full output must
+therefore repeat the panel propagation themselves to obtain `black` on every
+wave.
+
+The raw and derived variables have different meanings and should both be
+retained: `Q35_*` records the source response where it was collected, while a
+descriptively named variable such as `black` is a respondent-level indicator
+tiled across waves.
 
 ### Task
 
-1. Concatenate `races`, not `d`, into `df_full`.
+1. Preserve the original sparse `Q35_*` source responses in the full output.
 2. Anchor the source-column regex to the intended `Q35_<number>` fields.
-3. Keep full and extract race values sourced from the same tiled object.
+3. Add tiled, descriptively named race indicators to both full and extract
+   outputs, sourcing both from the same tiled object.
 4. Preserve missingness for respondents with no observed initial race response.
 
 ### Acceptance criteria
 
-- Within a respondent, all `Q35_*` values equal the single observed initial
-  response on every wave.
-- Respondents with no observed race response remain missing.
-- `df_full["Q35_2"]` and `df_extract["black"]` agree row for row.
+- Original `Q35_*` fields retain their source-data observation pattern in the
+  full output.
+- Within a respondent, each derived race indicator equals the single observed
+  initial response on every wave.
+- Respondents with no observed race response have missing derived indicators.
+- `df_full["black"]` and `df_extract["black"]` agree row for row.
+
+### Completion notes
+
+- The full output continues to retain the original, untiled `Q35_1`–`Q35_6`
+  source responses and now also includes the respondent-level tiled `black`
+  indicator already present in the extract.
+- Both full and extract `black` variables are sourced from the same tiled race
+  object, preserving missingness for respondents with no race response.
+- Race source selection is restricted to fields matching `^Q35_\\d+$`, avoiding
+  accidental capture of similarly named future columns.
 
 ---
 

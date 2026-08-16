@@ -225,3 +225,30 @@ def test_house_price_extract_uses_normalized_full_value() -> None:
     idx = (10001, 202401)
     assert df_full.loc[idx, "Q31v2part2"] == -2.5
     assert df_extract.loc[idx, "house_price_change"] == -2.5
+
+
+def test_tiled_black_indicator_is_shared_by_full_and_extract() -> None:
+    """Verify the derived race indicator is tiled consistently across outputs."""
+    df_raw = _make_dummy_sce_df(
+        {
+            "userid": [101, 101],
+            "date": [202401, 202402],
+            "survey_date": pd.to_datetime(
+                ["2024-01-01", "2024-02-01"]
+            ).tolist(),
+            "Q32": [45, np.nan],
+            "Q33": [1, np.nan],
+            "Q34": [2, np.nan],
+            "Q35_1": [0, np.nan],
+            "Q35_2": [1, np.nan],
+            "Q35_note": ["initial response", np.nan],
+            "Q36": [6, np.nan],
+            "Q46": [1, np.nan],
+        }
+    )
+
+    df_full, df_extract = process_sce(df_raw)
+
+    pd.testing.assert_series_equal(df_full["black"], df_extract["black"])
+    assert df_full["black"].tolist() == [1, 1]
+    assert "Q35_note" not in df_full.columns

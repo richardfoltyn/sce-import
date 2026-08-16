@@ -626,10 +626,12 @@ def process_sce(
     hispanic = df_full["Q34"].map({1: 1, 2: 0}, na_action="ignore")
     df_extract["hispanic"] = hispanic
 
-    # Q35: Races (multiple responses possible)
-    d = df.filter(regex="Q35.*", axis=1)
+    # Q35 records race only at the initial interview. Preserve these sparse raw
+    # responses in the full output and tile only descriptively named indicators.
+    d = df.filter(regex=r"^Q35_\d+$", axis=1)
     races = tile_const(d, VARNAME_ID, np.uint8)
     df_full = pd.concat((df_full, d), axis=1)
+    df_full["black"] = races["Q35_2"]
     df_extract["black"] = races["Q35_2"]
 
     # Q36: Highest level of education
