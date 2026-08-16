@@ -65,6 +65,44 @@ def flip_negative(s: pd.Series, negative: pd.Series) -> pd.Series:
     return s
 
 
+def propagate_household_composition(
+    initial: pd.DataFrame,
+    updates: pd.DataFrame,
+    *,
+    by: str = VARNAME_ID,
+) -> pd.DataFrame:
+    """Propagate complete household-composition states within respondents.
+
+    Parameters
+    ----------
+    initial
+        Household-composition responses from initial interviews.
+    updates
+        Household-composition responses from repeat interviews, with columns
+        aligned to ``initial``.
+    by
+        Name of the respondent index level.
+
+    Returns
+    -------
+    Household-composition states forward-filled within each respondent.
+
+    Notes
+    -----
+    A composition response is treated as an atomic state and is used only when
+    all components are observed. Complete repeat-interview responses take
+    precedence when both sources are present on the same row.
+    """
+    initial_complete = initial.notna().all(axis=1)
+    update_complete = updates.notna().all(axis=1)
+
+    composition = initial.copy(deep=True)
+    composition.loc[~initial_complete, :] = np.nan
+    composition.loc[update_complete, :] = updates.loc[update_complete, :]
+
+    return composition.groupby(level=by, sort=False).ffill()
+
+
 def process_sce(
     df: pd.DataFrame,
     decimals_percent: int | None = None,
@@ -505,10 +543,10 @@ def process_sce(
     # Q44: Own any other homes?
     df_full["Q44"] = df["Q44"]
 
-    # Q45new: Number of other HH members (multiple variables for multiple categories)
-    # NOTE: Will be updated for later waves below
-    d = df.filter(regex="Q45new_.*", axis=1)
-    df_full = pd.concat((df_full, d), axis=1)
+    # Q45new records counts for nine household-member categories at the initial
+    # interview; complete D2new responses replace this state at repeat interviews.
+    columns_hh_comp = [f"Q45new_{i}" for i in range(1, 10)]
+    df_full = pd.concat((df_full, df[columns_hh_comp]), axis=1)
 
     # Q45b: self-reported health
     df_full["Q45b"] = df["Q45b"]
@@ -537,18 +575,14 @@ def process_sce(
     hh_changed = df_full["D1"] == 2
     df_extract["hh_changed"] = hh_changed.astype(np.uint8)
 
-    # D2new: Updated HH members
-    # Update the original variables in place instead of keep another set of variables
-    d = df.filter(regex="D2new_.*", axis=1)
-    columns = df.filter(regex="Q45new_.*", axis=1).columns.to_list()
-    # Update HH composition in relevant waves
-    df_comp = df_full[columns].copy(deep=True)
-    df_comp.loc[hh_changed, columns] = d.loc[hh_changed].to_numpy()
-    # Drop all waves other than the initial wave and waves where HH composition changed
-    df_comp = df_comp.dropna()
-    # Forward-fill initial/updated HH composition
-    df_comp = df_comp.reindex(df_full.index, method="ffill")
-    df_full[columns] = df_comp
+    # D2new is a complete replacement state when observed. In particular, 2013
+    # incumbent-panel baselines contain valid D2new responses with missing D1.
+    columns_hh_updates = [f"D2new_{i}" for i in range(1, 10)]
+    hh_updates = df[columns_hh_updates].copy(deep=True)
+    hh_updates.columns = columns_hh_comp
+    df_full[columns_hh_comp] = propagate_household_composition(
+        df_full[columns_hh_comp], hh_updates
+    )
 
     # Number of kids implied by HH composition
     # Select relevant columns containing kids of various ages

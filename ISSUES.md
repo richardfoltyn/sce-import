@@ -42,7 +42,7 @@ Priority meanings:
 
 ---
 
-## [ ] SCE-001 — Prevent household composition from leaking across respondents
+## [x] SCE-001 — Prevent household composition from leaking across respondents
 
 **Priority:** P0  
 **Files:** `src/SCE/importer.py` (household update block around lines 535–559)
