@@ -38,7 +38,16 @@
 
 All commands should be executed within the `uv` virtual environment.
 
-### 1. Import and Process Data
+### 1. Verify Input Data Checksums
+
+Before processing, check that local raw data files match expected MD5 checksums:
+```bash
+./manifest/verify_data.sh
+```
+
+For more options and instructions on recreating MD5 manifests, see [`manifest/README.md`](manifest/README.md).
+
+### 2. Import and Process Data
 
 ```bash
 uv run src/main.py
@@ -62,13 +71,13 @@ reproducible, date-pinned sample is required. For example:
 uv run src/main.py --final-date 2024-10-01
 ```
 
-### 2. Generate Diagnostic Plots
+### 3. Generate Diagnostic Plots
 
 ```bash
 uv run src/main_plot_diag.py
 ```
 
-### 3. Extract and Clean Questionnaire Text
+### 4. Extract and Clean Questionnaire Text
 
 To extract the SCE questionnaire from PDF and clean it into a layout-preserved plain-text format:
 ```bash
@@ -90,7 +99,7 @@ Raw responses recorded for incumbent pilot-panel members are retained, but their
 correctness indicators remain missing because the historical instrument cannot
 be established from the published documentation.
 
-### 4. Code Quality & Type Checking
+### 5. Code Quality & Type Checking
 
 To run code formatting, linting, and type checking:
 ```bash
