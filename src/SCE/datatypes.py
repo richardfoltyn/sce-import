@@ -21,6 +21,8 @@ NULLABLE_INT8_COLUMNS = frozenset(
         "C3",
         "QNUM8",
         "QNUM9",
+        "Q32",
+        "age_init",
         "Q33",
         "Q34",
         "black",

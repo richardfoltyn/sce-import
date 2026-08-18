@@ -770,7 +770,7 @@ def _process_demographics(
     # Implausible values (e.g. 0, 3, 511) are set to missing before tiling so
     # that they are not propagated to every subsequent wave for that user.
     # Bounds: see AGE_MIN / AGE_MAX constants.
-    df_full["Q32"] = tile_const(clean_age(df["Q32"]), VARNAME_ID)
+    df_full["Q32"] = tile_const(clean_age(df["Q32"]), VARNAME_ID, "Int8")
 
     # Broadcast age across all waves since it does not seem to be asked again.
     df_extract["age_init"] = df_full["Q32"]
