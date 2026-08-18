@@ -69,8 +69,16 @@ def tile_const(
     if (values.groupby(by).size() != 1).any():
         raise ValueError("Multiple non-NA values encountered")
 
-    tiled = values.groupby(by).first().reindex(index, level=by)
+    grouped = values.groupby(by).first()
     if dtype is not None:
-        tiled = tiled.astype(dtype)
+        # Cast non-missing values before reindexing so float64 inputs can transition
+        # to nullable integer dtypes without triggering pandas safe-cast errors on NaNs,
+        # and allow reindex() to inject pd.NA for missing groups directly in the target dtype.
+        if pd.api.types.is_integer_dtype(dtype) and pd.api.types.is_float_dtype(grouped):
+            grouped = grouped.astype(int).astype(dtype)
+        else:
+            grouped = grouped.astype(dtype)
+
+    tiled = grouped.reindex(index, level=by)
 
     return tiled
