@@ -111,8 +111,7 @@ SAME_EMPLOYER_RECODE: Final = BinaryRecode(
 # `working` means literally working now. Temporary layoff and leave remain zero,
 # even though questionnaire routing treats those statuses as attached to a job.
 Q10_WORKING_COLUMNS: Final = tuple(
-    f"Q10_{int(code)}"
-    for code in (EmplStatusEnum.FULL_TIME, EmplStatusEnum.PART_TIME)
+    f"Q10_{int(code)}" for code in (EmplStatusEnum.FULL_TIME, EmplStatusEnum.PART_TIME)
 )
 Q10_OTHER_COLUMNS: Final = (f"Q10_{int(EmplStatusEnum.OTHER)}",)
 
@@ -124,6 +123,4 @@ SPOUSE_WORKING_COLUMNS: Final = tuple(
         PartnerEmplStatusEnum.SELF_EMPLOYED,
     )
 )
-SPOUSE_OTHER_COLUMNS: Final = (
-    f"HH2_{int(PartnerEmplStatusEnum.OTHER)}",
-)
+SPOUSE_OTHER_COLUMNS: Final = (f"HH2_{int(PartnerEmplStatusEnum.OTHER)}",)

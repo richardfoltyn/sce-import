@@ -16,8 +16,8 @@ def merge_if_na(*data: pd.Series | pd.DataFrame) -> pd.Series:
     """
     Incrementally replace missing values.
 
-    Returns the values in the first element of `data`, but incrementally replaces
-    any missing values with non-missing values from remaining items in `data`.
+    Returns the values in the first element of ``data``, but incrementally replaces
+    any missing values with non-missing values from remaining items in ``data``.
 
     Parameters
     ----------
@@ -26,8 +26,7 @@ def merge_if_na(*data: pd.Series | pd.DataFrame) -> pd.Series:
 
     Returns
     -------
-    pd.Series
-        The merged Series.
+    The merged Series.
     """
     df_data = pd.concat(data, axis=1)
 
@@ -58,12 +57,11 @@ def tile_const(
     by
         The name of the index level to group by.
     dtype
-        The target data type to cast to, optional.
+        The target data type to cast to.
 
     Returns
     -------
-    pd.Series or pd.DataFrame
-        The tiled pandas Series or DataFrame.
+    The tiled pandas Series or DataFrame.
     """
     index = values.index
     values = values.dropna()

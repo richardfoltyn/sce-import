@@ -46,8 +46,7 @@ class WellBeingEnum(IntEnum):
 
         Returns
         -------
-        str
-            Description of the well-being state.
+        Description of the well-being state.
         """
         cls = type(self)
         mapping = {
@@ -84,8 +83,7 @@ class EmplStatusEnum(IntEnum):
 
         Returns
         -------
-        str
-            Description of the employment status.
+        Description of the employment status.
         """
         cls = type(self)
         mapping = {
@@ -136,8 +134,7 @@ class EmplTypeEnum(IntEnum):
 
         Returns
         -------
-        str
-            Description of employment type.
+        Description of employment type.
         """
         cls = type(self)
         mapping = {
@@ -187,8 +184,7 @@ class EducationEnum(IntEnum):
 
         Returns
         -------
-        str
-            Description of the education level.
+        Description of the education level.
         """
         cls = type(self)
 
@@ -228,8 +224,7 @@ class Educ4Enum(IntEnum):
 
         Returns
         -------
-        str
-            Description of the coarse education level.
+        Description of the coarse education level.
         """
         cls = type(self)
 

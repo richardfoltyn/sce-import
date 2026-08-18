@@ -41,8 +41,7 @@ def md5sum(file_path: Path) -> str:
 
     Returns
     -------
-    str
-        MD5 checksum as a hexadecimal string.
+    MD5 checksum as a hexadecimal string.
     """
     hash_md5 = hashlib.md5()
     with file_path.open("rb") as file:
@@ -116,10 +115,9 @@ def apply_metadata(
 
     Returns
     -------
-    pd.DataFrame
-        Copy of ``df`` with ``attrs["variable_labels"]`` and
-        ``attrs["value_labels"]`` populated. Labels are filtered to names
-        actually present so downstream exports do not fail on unknown keys.
+    Copy of ``df`` with ``attrs["variable_labels"]`` and
+    ``attrs["value_labels"]`` populated. Labels are filtered to names
+    actually present so downstream exports do not fail on unknown keys.
 
     Notes
     -----
@@ -170,8 +168,7 @@ def prepare_csv_export(
 
     Returns
     -------
-    pd.DataFrame
-        Copy of ``df`` with CSV presentation rounding applied.
+    Copy of ``df`` with CSV presentation rounding applied.
     """
     result = df.copy(deep=True)
     columns = result.filter(regex=CSV_PERCENT_COLUMN_REGEX, axis=1).columns

@@ -42,7 +42,7 @@ def plot_nobs_indiv(
     style
         Plot style specification.
     **kwargs
-        Additional options passed to `plot_grid`.
+        Additional options passed to ``plot_grid``.
     """
     df = df.reset_index()
 
@@ -137,7 +137,7 @@ def plot_nobs_wave(
     style
         Plot style specification.
     **kwargs
-        Additional options passed to `plot_grid`.
+        Additional options passed to ``plot_grid``.
     """
     df = df.reset_index()
 
@@ -230,7 +230,7 @@ def plot_stats_wave(
     style
         Plot style specification.
     **kwargs
-        Additional options passed to `plot_grid`.
+        Additional options passed to ``plot_grid``.
     """
     logger = logging.getLogger("SCE")
 

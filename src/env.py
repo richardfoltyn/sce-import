@@ -1,7 +1,7 @@
 """
 Module to set up environment for running all Python scripts.
 
-- Define the `EnvConfig` class used to hold parsed CLI arguments.
+- Define the ``EnvConfig`` class used to hold parsed CLI arguments.
 - Wire up logging and runtime paths.
 
 Author: Richard Foltyn
@@ -34,8 +34,7 @@ def record_factory(*args: Any, **kwargs: Any) -> logging.LogRecord:
 
     Returns
     -------
-    logging.LogRecord
-        The created log record with custom relative time attributes.
+    The created log record with custom relative time attributes.
     """
     record = old_factory(*args, **kwargs)
 
@@ -125,15 +124,14 @@ def add_logfile(
     time
         Add time stamp to log output.
     reltime
-        Add relative time stamp since logging start. Ignores `date` and `time`
+        Add relative time stamp since logging start. Ignores ``date`` and ``time``
         arguments.
     append
         If true, append to existing log file.
 
     Returns
     -------
-    logging.FileHandler
-        The added file handler.
+    The added file handler.
     """
     timestamp = datetime.datetime.now()
     path = Path(file)
@@ -227,8 +225,7 @@ def parse_iso_date(value: str) -> datetime.date:
 
     Returns
     -------
-    datetime.date
-        Parsed calendar date.
+    Parsed calendar date.
 
     Raises
     ------
@@ -263,8 +260,7 @@ def parse_export_formats(value: str) -> set[str]:
 
     Returns
     -------
-    set[str]
-        Set of validated format names.
+    Set of validated format names.
 
     Raises
     ------
@@ -285,7 +281,7 @@ class EnvConfig(Namespace):
     """
     Custom Namespace class used to hold parsed command-line arguments.
 
-    Holds either user-provided overrides or resolved defaults as `pathlib.Path` objects.
+    Holds either user-provided overrides or resolved defaults as ``pathlib.Path`` objects.
     """
 
     repodir: Path
@@ -358,7 +354,6 @@ class EnvConfig(Namespace):
         """
         Post-process parsed command-line arguments and set derived values.
         """
-        pass
 
     @classmethod
     def add_arguments(cls, parser: ArgumentParser) -> None:
@@ -441,8 +436,7 @@ class EnvConfig(Namespace):
 
         Returns
         -------
-        Self
-            The configured environment.
+        The configured environment.
         """
         parser = ArgumentParser(description=description or "SCE importer")
         cls.add_arguments(parser)
@@ -477,8 +471,7 @@ def _resolve_path(
 
     Returns
     -------
-    Path
-        The fully resolved path.
+    The fully resolved path.
     """
     path = value if value is not None else default_path
     if not path.is_absolute():

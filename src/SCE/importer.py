@@ -59,8 +59,7 @@ def clean_age(s: pd.Series) -> pd.Series:
 
     Returns
     -------
-    pd.Series
-        Copy of ``s`` with out-of-domain values set to ``pd.NA``.
+    Copy of ``s`` with out-of-domain values set to ``pd.NA``.
 
     Notes
     -----
@@ -102,9 +101,8 @@ def flip_negative(
 
     Returns
     -------
-    pd.Series
-        A copy of the values. Explicit decreases are negated only when every
-        non-missing value in the Series is nonnegative.
+    A copy of the values. Explicit decreases are negated only when every
+    non-missing value in the Series is nonnegative.
 
     Notes
     -----
@@ -194,9 +192,8 @@ def recode_binary_response(
 
     Returns
     -------
-    pd.Series
-        Responses represented as nullable 0/1 integers. Missing source values
-        and explicitly unclassifiable codes remain ``pd.NA``.
+    Responses represented as nullable 0/1 integers. Missing source values
+    and explicitly unclassifiable codes remain ``pd.NA``.
     """
     result = pd.Series(
         pd.NA,
@@ -230,10 +227,9 @@ def any_selected_indicator(
 
     Returns
     -------
-    pd.Series
-        Nullable 0/1 integers. A row is missing when all response indicators
-        are missing or only an unclassifiable category is selected. An observed
-        row without a selected true category is otherwise zero.
+    Nullable 0/1 integers. A row is missing when all response indicators
+    are missing or only an unclassifiable category is selected. An observed
+    row without a selected true category is otherwise zero.
     """
     selected = indicators
     if selected_columns is not None:
@@ -306,8 +302,7 @@ def apply_sce_output_dtypes(
 
     Returns
     -------
-    pandas.DataFrame
-        Copy of the data with stable output dtypes.
+    Copy of the data with stable output dtypes.
 
     Notes
     -----
@@ -708,9 +703,8 @@ def score_numerical_literacy_response(
 
     Returns
     -------
-    pd.Series
-        Nullable 0/1 correctness indicator. Missing responses and responses
-        from an unverified questionnaire version remain missing.
+    Nullable 0/1 correctness indicator. Missing responses and responses
+    from an unverified questionnaire version remain missing.
     """
     result = pd.Series(pd.NA, index=values.index, dtype=pd.Int8Dtype())
     scored = values.notna() & eligible
@@ -783,9 +777,7 @@ def _process_demographics(
 
     # Q33: gender — coding: (1) Female, (2) Male.
     df_full["Q33"] = tile_const(df["Q33"], VARNAME_ID, "Int8")
-    df_extract["female"] = recode_binary_response(
-        df_full["Q33"], coding=FEMALE_RECODE
-    )
+    df_extract["female"] = recode_binary_response(df_full["Q33"], coding=FEMALE_RECODE)
 
     # Q34: Hispanic/Latino origin — coding: (1) Yes, (2) No.
     df_full["Q34"] = tile_const(df["Q34"], VARNAME_ID, "Int8")
@@ -822,9 +814,7 @@ def _process_demographics(
     # Coarser education with 4 categories (Educ4Enum): LT HS=1, HS=2,
     # Some college (including associate's degree)=3, College degree=4.
     # Code 9 (Other) is unmapped and therefore remains missing.
-    df_extract["educ"] = (
-        df_full["Q36"].map(EDUCATION_TO_EDUC4).astype(pd.Int8Dtype())
-    )
+    df_extract["educ"] = df_full["Q36"].map(EDUCATION_TO_EDUC4).astype(pd.Int8Dtype())
 
     # Q37: How long working at current job? (categorical)
     df_full["Q37"] = df["Q37"]
@@ -862,9 +852,7 @@ def _process_household_background(
     # as missing because the arrangement is unspecified; it must not be equated
     # with renting.
     df_full["Q43"] = df["Q43"]
-    df_extract["owner"] = recode_binary_response(
-        df_full["Q43"], coding=OWNER_RECODE
-    )
+    df_extract["owner"] = recode_binary_response(df_full["Q43"], coding=OWNER_RECODE)
 
     # Q44: Own any other homes?
     df_full["Q44"] = df["Q44"]
@@ -933,9 +921,7 @@ def _process_household_background(
     # DQ38: currently married or living with partner? (repeat-interview update to Q38)
     # Coding: (1) Yes, (2) No.
     df_full["Q38"] = merge_if_na(df_full["Q38"], df["DQ38"])
-    df_extract["couple"] = recode_binary_response(
-        df_full["Q38"], coding=COUPLE_RECODE
-    )
+    df_extract["couple"] = recode_binary_response(df_full["Q38"], coding=COUPLE_RECODE)
 
     # DHH2 repeats the HH2 multi-response question; merge updates into the
     # canonical HH2 fields before deriving spouse employment.
@@ -1057,8 +1043,7 @@ def income_reference_year(dates: pd.Series) -> pd.Series:
 
     Returns
     -------
-    pd.Series
-        ACS reference years, indexed like ``dates``.
+    ACS reference years, indexed like ``dates``.
 
     Notes
     -----
@@ -1089,9 +1074,8 @@ def expand_income_rank_years(
 
     Returns
     -------
-    pd.DataFrame
-        Rank mappings on a complete year-by-income-bin grid. Internal and
-        future missing years use the latest preceding mapping for the same bin.
+    Rank mappings on a complete year-by-income-bin grid. Internal and
+    future missing years use the latest preceding mapping for the same bin.
 
     Raises
     ------
@@ -1180,8 +1164,7 @@ def merge_inc_rank(
 
     Returns
     -------
-    pd.Series
-        The merged income rank Series.
+    The merged income rank Series.
     """
     logger = logging.getLogger(LOGGER_NAME)
 
