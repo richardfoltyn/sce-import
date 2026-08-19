@@ -1,19 +1,20 @@
 /*
-
-Script to map each SCE family income bin to the median rank in the family
-income distribution using the ACS data for the same survey years.
-
+    Map each SCE family income bin to the median rank in the family income
+    distribution using ACS data for the same survey years.
 */
+
+set more off
+set varabbrev off
 
 
 //------------------------------------------------------------------------------
 // Configuration
 
 if "${S_OS}" == "Unix" {
-	local home: environment HOME
+    local home: environment HOME
 }
 else {
-	local home: environment USERPROFILE
+    local home: environment USERPROFILE
 }
 
 global DIAGNOSTICS = 1
@@ -86,15 +87,17 @@ sort year lbound
 // Create 1-based bin index without the lower bound label
 by year (lbound): generate ibin = _n
 
-// Store as CSV
-order year ibin lbound rank 
+sort year ibin
+isid year ibin
+
+order year ibin lbound rank
 
 describe
 
 export delimited using `"${OUTDIR}/IPUMS_ftotinc_rank_by_year_sce_bins.csv"', ///
     replace datafmt
 
-    
+
 //------------------------------------------------------------------------------
 // Median income ranks by college for initial age range
 
@@ -133,7 +136,7 @@ if `by_age' {
 
 drop if missing(ftotinc)
 
-// Generate person-level family income ranks within each survey year
+// Generate person-level family income ranks within each cell
 by `cellvars', sort: cumul ftotinc [fw=perwt], generate(rank) equal
 
 summarize ftotinc, detail
@@ -145,17 +148,17 @@ replace ftotinc = max(0, ftotinc)
 // Discretize into bins which are the same as in the SCE
 egen lbound = cut(ftotinc), at(${FAM_INC_CUTS})
 
-// Compute median rank (within the family income distribution of each year)
-// for each bin.
-// Generate nobs variable to be used with rawsum to get actual number of obs.
-// even when fweights are used.
-generate nobs = 1
+// Generate nobs variable to count unweighted observations with rawsum under fweights
+generate byte nobs = 1
+
+// Compute summary statistics for each income bin within each cell.
+// (rawsum) nobs is required because (count) with fweights sums the weights
 collapse (min) rank_min=rank (median) rank (rawsum) nobs (rawsum) mass=perwt ///
     [fw=perwt], by(`cellvars' lbound)
 
+// Normalize mass within each cell so exact bins sum to 1.0
 by `cellvars': egen mass_total = total(mass)
 replace mass = mass / mass_total
-drop mass_total
 
 // Create 1-based bin index without the lower bound label
 by `cellvars' (lbound), sort: generate ibin = _n
@@ -163,7 +166,7 @@ by `cellvars' (lbound), sort: generate ibin = _n
 label variable ibin "Family income bin"
 label variable mass "Frac of obs within `cellvars'"
 label variable rank "Median rank within income bin"
-label variable rank_min "Lowest rank within income bin" 
+label variable rank_min "Lowest rank within income bin"
 label variable lbound "Bin lower bound (nominal USD)"
 label variable nobs "N. obs within bin"
 
@@ -190,7 +193,7 @@ if ${DIAGNOSTICS} {
         local imax = r(max)
 
         #delimit ;
-        twoway 
+        twoway
             `graph_str',
             ytitle("Rank")
             xtitle("Family income bin")
@@ -214,13 +217,16 @@ by `cellvars', sort: egen nobs_cell = total(nobs)
 keep if nobs_cell >= 1000
 drop nobs_cell
 
+sort `cellvars' ibin
+isid `cellvars' ibin
+
 format %5.3f rank rank_min mass
 
 drop if missing(lbound)
-sort `cellvars' lbound
 
-// Store as CSV
-order `cellvars' ibin lbound rank rank_min, first 
+local varlist `cellvars' ibin lbound rank rank_min nobs mass
+keep `varlist'
+order `varlist'
 
 describe
 
