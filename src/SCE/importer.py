@@ -1160,11 +1160,11 @@ def merge_inc_rank(
     varname_inc_bin
         Income bin variable name.
     df_ranks
-        Income rank data from ACS.
+        Income rank data on ``[0, 1]`` from ACS.
 
     Returns
     -------
-    The merged income rank Series.
+    The merged income rank Series on ``[0, 1]``.
     """
     logger = logging.getLogger(LOGGER_NAME)
 
@@ -1178,10 +1178,6 @@ def merge_inc_rank(
     df["year"] = income_reference_year(df["date"])
     years_in_sce = np.sort(df["year"].unique())
     df_ranks = expand_income_rank_years(df_ranks, years_in_sce)
-
-    # Rescale to rank percentiles on [0, 100]
-    if df_ranks["rank"].max() <= 1.0:
-        df_ranks["rank"] = df_ranks["rank"] * 100.0
 
     # Merge total household income
     varname_rank = varname_inc_bin + "_rank"

@@ -61,7 +61,7 @@ def test_future_complete_mapping_remains_many_to_one_mergeable() -> None:
 
     result = merge_inc_rank(sce, "Q47", ranks)
 
-    expected = pd.Series([float(value) for value in bins], index=index, name="Q47_rank")
+    expected = pd.Series([value / 100 for value in bins], index=index, name="Q47_rank")
     pd.testing.assert_series_equal(result, expected, check_exact=False)
 
 

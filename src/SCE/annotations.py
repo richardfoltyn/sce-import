@@ -202,10 +202,10 @@ VARIABLE_LABELS: dict[str, str] = {
     "take_fin_risk": "Willingness to take financial risks?",
     # HH income (11 bins from the SCE questionnaire, Q47)
     "hh_inc_bin": "Total HH income bin (1-11)",
-    # ACS income rank percentile (0-100) conditional on income bin and survey year
-    "hh_inc_bin_rank": "ACS income rank percentile for HH income bin",
+    # ACS income rank (0-1) conditional on income bin and survey year
+    "hh_inc_bin_rank": "ACS income rank for HH income bin",
     # Full-output equivalent of hh_inc_bin_rank (Q47_rank appears only in df_full)
-    "Q47_rank": "ACS income rank percentile for HH income bin (full output)",
+    "Q47_rank": "ACS income rank for HH income bin (full output)",
     # HH dynamics (repeat-interview variables)
     # D1 coding: 1=unchanged, 2=changed; derived hh_changed is 1 when changed, 0 when unchanged
     "hh_changed": "HH changed since last survey",

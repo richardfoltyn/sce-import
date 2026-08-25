@@ -82,8 +82,8 @@ def test_prepare_csv_export_rounds_only_percentages_and_percentiles() -> None:
             "infl_5y_bin_prob_defl": [15.4321, 2.3456],
             "earnings_change": [3.4567, -2.3456],
             "house_price_change_3y": [4.5678, -3.4567],
-            "hh_inc_bin_rank": [63.4567, 81.2345],
-            "Q47_rank": [62.3456, 80.1234],
+            "hh_inc_bin_rank": [0.634567, 0.812345],
+            "Q47_rank": [0.623456, 0.801234],
             "weight": [0.123456, 0.654321],
             "jobless_length": [1.23456, 7.65432],
         }
@@ -98,8 +98,8 @@ def test_prepare_csv_export_rounds_only_percentages_and_percentiles() -> None:
     assert result["infl_5y_bin_prob_defl"].tolist() == [15.43, 2.35]
     assert result["earnings_change"].tolist() == [3.46, -2.35]
     assert result["house_price_change_3y"].tolist() == [4.57, -3.46]
-    assert result["hh_inc_bin_rank"].tolist() == [63.46, 81.23]
-    assert result["Q47_rank"].tolist() == [62.35, 80.12]
+    assert result["hh_inc_bin_rank"].tolist() == [0.63, 0.81]
+    assert result["Q47_rank"].tolist() == [0.62, 0.80]
     assert result["weight"].tolist() == original["weight"].tolist()
     assert result["jobless_length"].tolist() == original["jobless_length"].tolist()
     assert_frame_equal(df, original)

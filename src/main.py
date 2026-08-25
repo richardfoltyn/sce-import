@@ -156,7 +156,7 @@ def prepare_csv_export(
 
     Only quantities represented as percentages or percentiles are rounded:
     probabilities on ``[0, 100]``, inflation statistics, percentage changes,
-    and ACS income ranks on ``[0, 100]``. Other measured quantities retain
+    and ACS income ranks on ``[0, 1]``. Other measured quantities retain
     their processed precision.
 
     Parameters
