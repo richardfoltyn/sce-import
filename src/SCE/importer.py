@@ -345,11 +345,11 @@ def _process_general_expectations(
     df_extract = pd.DataFrame(index=df.index)
 
     # Financially better or worse off than 12 months ago?
-    df_full["Q1"] = df["Q1"].fillna(-1).astype(np.int8)
+    df_full["Q1"] = df["Q1"].astype(pd.Int8Dtype())
     df_extract["financial_past_12m"] = df_full["Q1"]
 
     # Financially better or worse off in 12 months?
-    df_full["Q2"] = df["Q2"].fillna(-1).astype(np.int8)
+    df_full["Q2"] = df["Q2"].astype(pd.Int8Dtype())
     df_extract["financial_12m"] = df_full["Q2"]
 
     # percent change to move primary residence in next 12 months?

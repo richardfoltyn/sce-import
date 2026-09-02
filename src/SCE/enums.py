@@ -33,7 +33,6 @@ class WellBeingEnum(IntEnum):
     Categorical response for financial well-being.
     """
 
-    NA = -1
     MUCH_WORSE = 1
     SOMEWHAT_WORSE = 2
     SAME = 3
@@ -50,7 +49,6 @@ class WellBeingEnum(IntEnum):
         """
         cls = type(self)
         mapping = {
-            cls.NA: "NA",
             cls.MUCH_WORSE: "Much worse off",
             cls.SOMEWHAT_WORSE: "Somewhat worse off",
             cls.SAME: "About the same",

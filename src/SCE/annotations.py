@@ -335,7 +335,6 @@ VARIABLE_LABELS_FULL: dict[str, str] = {
 
 
 # Financial well-being (Q1/Q2): codes 1-5 per WellBeingEnum.
-# Code -1 is used as a fill-in placeholder for structurally missing responses.
 _WELL_BEING_LABELS: dict[int, str] = {int(e): str(e) for e in WellBeingEnum}
 
 # Binary 0/1 indicators derived from yes/no questionnaire responses
@@ -373,7 +372,7 @@ _EDUC4_LABELS: dict[int, str] = {int(e): str(e) for e in Educ4Enum}
 
 VALUE_LABELS: dict[str, dict[int, str]] = {
     **dict.fromkeys(_FULL_BINARY_INDICATORS, _BINARY_LABELS),
-    # Financial well-being (code -1 = fillna placeholder for structurally missing)
+    # Financial well-being
     "Q1": _WELL_BEING_LABELS,
     "financial_past_12m": _WELL_BEING_LABELS,
     "Q2": _WELL_BEING_LABELS,
