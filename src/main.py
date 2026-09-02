@@ -207,17 +207,51 @@ def summarize_sample(df: pd.DataFrame, name: str) -> None:
     logger.info(f"  First interview date:   {min_date}")
     logger.info(f"  Last interview date:    {max_date}")
     logger.info(f"  Number of variables:    {n_vars:,d}")
-    logger.info("  Non-missing observations per variable:")
+    logger.info("  Descriptive statistics per variable:")
 
-    non_missing = df.count()
-    if not non_missing.empty:
-        max_var_len = max(len(str(var)) for var in non_missing.index)
-        max_count_len = max(len(f"{count:,d}") for count in non_missing.values)
-        for var_name, count in non_missing.items():
-            formatted_count = f"{count:,d}"
-            logger.info(
-                f"    {var_name!s:<{max_var_len}}  {formatted_count:>{max_count_len}}"
-            )
+    stat_columns = ("Nobs", "Mean", "Min", "P25", "P50", "P75", "Max")
+    df_stats = pd.DataFrame(index=df.columns, columns=stat_columns, dtype="object")
+    df_stats["Nobs"] = df.count()
+
+    df_numeric = df.select_dtypes(include="number")
+    df_describe = df_numeric.describe(percentiles=[0.25, 0.5, 0.75]).T
+    describe_columns = {
+        "mean": "Mean",
+        "min": "Min",
+        "25%": "P25",
+        "50%": "P50",
+        "75%": "P75",
+        "max": "Max",
+    }
+    for source, target in describe_columns.items():
+        df_stats.loc[df_describe.index, target] = df_describe[source]
+
+    rows: list[list[str]] = []
+    for var_name, values in df_stats.iterrows():
+        row = [str(var_name), f"{int(values['Nobs']):,d}"]
+        for column in stat_columns[1:]:
+            value = values[column]
+            row.append("" if pd.isna(value) else f"{float(value):,.6g}")
+        rows.append(row)
+
+    headers = ("Variable", *stat_columns)
+    widths = [
+        max(len(header), *(len(row[i]) for row in rows))
+        for i, header in enumerate(headers)
+    ]
+    table_header = " | ".join(
+        f"{header:<{widths[i]}}" if i == 0 else f"{header:>{widths[i]}}"
+        for i, header in enumerate(headers)
+    )
+    table_fence = "-+-".join("-" * width for width in widths)
+    logger.info(f"    {table_header}")
+    logger.info(f"    {table_fence}")
+    for row in rows:
+        line = " | ".join(
+            f"{value:<{widths[i]}}" if i == 0 else f"{value:>{widths[i]}}"
+            for i, value in enumerate(row)
+        )
+        logger.info(f"    {line}")
 
 
 def summarize_spell_lengths(df: pd.DataFrame) -> None:

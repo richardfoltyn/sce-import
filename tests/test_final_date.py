@@ -118,12 +118,12 @@ def test_final_date_cli_rejects_invalid_date(
 def test_summarize_sample_logs_expected_metrics(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Verify summarize_sample logs observations, individuals, dates, and non-missing counts."""
+    """Verify summarize_sample logs sample and per-variable statistics."""
     caplog.set_level("INFO", logger="SCE")
     index = pd.MultiIndex.from_tuples(
         [(101, 1), (101, 2), (202, 1)], names=["userid", "wid"]
     )
-    dates = pd.to_datetime(["2024-01-01", "2024-01-02", "2024-01-03"])
+    dates = pd.to_datetime(["2024-01-01", "NaT", "2024-01-03"])
     df = pd.DataFrame(
         {
             "date": dates,
@@ -143,8 +143,18 @@ def test_summarize_sample_logs_expected_metrics(
     assert "First interview date:   2024-01-01" in logs
     assert "Last interview date:    2024-01-03" in logs
     assert "Number of variables:    3" in logs
-    assert "var_a  2" in logs
-    assert "var_b  1" in logs
+    assert "Variable | Nobs | Mean | Min | P25 | P50 | P75 | Max" in logs
+
+    rows = {
+        fields[0]: fields[1:]
+        for message in caplog.messages
+        if "|" in message and not set(message.strip()) <= {"-", "+"}
+        if (fields := [field.strip() for field in message.split("|")])[0]
+        in {"date", "var_a", "var_b"}
+    }
+    assert rows["date"] == ["2", "", "", "", "", "", ""]
+    assert rows["var_a"] == ["2", "2", "1", "1.5", "2", "2.5", "3"]
+    assert rows["var_b"] == ["1", "2", "2", "2", "2", "2", "2"]
 
 
 def test_summarize_spell_lengths_logs_expected_distribution(
