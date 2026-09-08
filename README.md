@@ -8,7 +8,7 @@
 
 ## Features
 
-- **Raw Data Concatenation**: Merges multiple historical and latest raw Excel microdata files (e.g., `FRBNY-SCE-Public-Microdata-Complete-13-16.xlsx`, `FRBNY-SCE-Public-Microdata-Complete-17-19.xlsx`, and `frbny-sce-public-microdata-latest.xlsx`).
+- **Raw Data Concatenation**: Merges historical and current raw Excel microdata files: `FRBNY-SCE-Public-Microdata-Complete-13-16.xlsx`, `FRBNY-SCE-Public-Microdata-Complete-17-19.xlsx`, `frbny-sce-public-microdata-20-24.xlsx`, and `frbny-sce-public-microdata-latest.xlsx`.
 - **Data Standardization**: Converts raw variables into standard representations, flips incorrect signs where decreases were coded as positive (e.g., in inflation/deflation rate responses), and maps categoricals.
 - **Output Metadata**: Attaches complete variable labels to full and extract
   outputs, plus applicable categorical value labels. Pickle stores them in

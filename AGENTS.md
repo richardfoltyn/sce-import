@@ -22,6 +22,21 @@
 - When applicable, run pytest targets in parallel with pytest-xdist, using
   `uv run pytest -n auto <test paths>`.
 
+## Data
+
+- The raw data is provided as Excel files in `$HOME/data/SCE`: `FRBNY-SCE-Public-Microdata-Complete-13-16.xlsx`, `FRBNY-SCE-Public-Microdata-Complete-17-19.xlsx`, `frbny-sce-public-microdata-20-24.xlsx`, and `frbny-sce-public-microdata-latest.xlsx`.
+
+## Questionnaire
+
+- The processed, layout-preserved, and cleaned text of the Survey of Consumer Expectations (SCE) questionnaire is located at [`QUESTIONNAIRE.txt`](QUESTIONNAIRE.txt).
+
+## Run directory
+
+- The run directory is `$HOME/run/sce-import`.
+- Its subdirectories are `cache`, `graphs`, `logs`, `output`, and `stata`.
+- Stata artifacts are under `$HOME/run/sce-import/stata`, with `graphs`,
+  `logs`, and `output` subdirectories.
+
 ## SCE data invariants
 
 - Assume that the survey importing pipeline in [`src/SCE/importer.py`](file:///home/richard/repos/sce-import/src/SCE/importer.py) or main entry points like [`src/main.py`](file:///home/richard/repos/sce-import/src/main.py) process and structure the raw data correctly.
@@ -31,7 +46,3 @@
 
 - A Stata installation should be available in `/opt/stata/19/stata-se` or similar.
 - Ask for approval before running Stata, a static code analysis usually is good enough.
-
-## Questionnaire
-
-- The processed, layout-preserved, and cleaned text of the Survey of Consumer Expectations (SCE) questionnaire is located at [`QUESTIONNAIRE.txt`](QUESTIONNAIRE.txt) in the workspace root.

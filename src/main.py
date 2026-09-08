@@ -347,6 +347,7 @@ def main(econf: EnvConfig) -> None:
     files = [
         "FRBNY-SCE-Public-Microdata-Complete-13-16.xlsx",
         "FRBNY-SCE-Public-Microdata-Complete-17-19.xlsx",
+        "frbny-sce-public-microdata-20-24.xlsx",
         "frbny-sce-public-microdata-latest.xlsx",
     ]
 

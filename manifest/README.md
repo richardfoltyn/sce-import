@@ -4,7 +4,7 @@ This folder contains the MD5 checksums for the input data files used in this pro
 
 ## Manifest Files
 
-- `FRBNY-SCE.md5`: MD5 checksums for the Federal Reserve Bank of New York (FRBNY) SCE Excel microdata files (`FRBNY-SCE-Public-Microdata-Complete-13-16.xlsx`, `FRBNY-SCE-Public-Microdata-Complete-17-19.xlsx`, `frbny-sce-public-microdata-latest.xlsx`).
+- `FRBNY-SCE.md5`: MD5 checksums for the Federal Reserve Bank of New York (FRBNY) SCE Excel microdata files (`FRBNY-SCE-Public-Microdata-Complete-13-16.xlsx`, `FRBNY-SCE-Public-Microdata-Complete-17-19.xlsx`, `frbny-sce-public-microdata-20-24.xlsx`, `frbny-sce-public-microdata-latest.xlsx`).
 - `ACS.md5`: MD5 checksum for the IPUMS ACS input data file (`ftotinc_2008-2024.dta`).
 
 ## Data Verification
@@ -27,7 +27,7 @@ To recreate or update the MD5 checksum files from updated raw input data, run th
 
 ```bash
 # Recreate FRBNY SCE manifest
-(cd ~/data/SCE && md5sum FRBNY-SCE-Public-Microdata-Complete-13-16.xlsx FRBNY-SCE-Public-Microdata-Complete-17-19.xlsx frbny-sce-public-microdata-latest.xlsx) > manifest/FRBNY-SCE.md5
+(cd ~/data/SCE && md5sum FRBNY-SCE-Public-Microdata-Complete-13-16.xlsx FRBNY-SCE-Public-Microdata-Complete-17-19.xlsx frbny-sce-public-microdata-20-24.xlsx frbny-sce-public-microdata-latest.xlsx) > manifest/FRBNY-SCE.md5
 
 # Recreate ACS manifest
 (cd ~/data/IPUMS/ACS && md5sum ftotinc_2008-2024.dta) > manifest/ACS.md5
