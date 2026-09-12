@@ -11,8 +11,6 @@
   compatibility.
 - This project uses `uv` to manage the local Python environment.
 - Do not attempt to install additional packages in the local `venv`, unless explicitly asked to do so.
-- This project uses a private external library:
-  - `pydynopt`: located in `$HOME/repos/pydynopt` (access in read-only mode).
 - `ruff` and `ty` for type checking are installed directly in the operating system. Run them using the `uv run` prefix (e.g., `uv run ty check` and `uv run ruff check`) to ensure they use the local `.venv` environment and resolve dependencies correctly. Do not attempt to install them in the local environment.
 
 ### Execution and unit tests

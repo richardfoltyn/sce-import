@@ -3,8 +3,10 @@ Variable labels mappings for original and processed SCE survey variables.
 
 - VARIABLE_LABELS_ORIG: Raw/original question labels.
 - VARIABLE_LABELS: Modern/clean question labels.
+- VARIABLE_LABELS_SHORT: Compact labels for diagnostic plot annotations.
 - VARIABLE_LABELS_FULL: Complete labels for the processed full output.
 - VALUE_LABELS: Categorical value labels for encoded response codes.
+- USD_VARIABLES: Processed variables whose values are denominated in US dollars.
 
 Author: Richard Foltyn
 """
@@ -12,6 +14,8 @@ Author: Richard Foltyn
 from collections.abc import Iterable
 
 from SCE.enums import INCOME_CATEGORIES, Educ4Enum, EmplStatusEnum, WellBeingEnum
+
+USD_VARIABLES: frozenset[str] = frozenset({"num_lit_q1", "num_lit_q2"})
 
 VARIABLE_LABELS_ORIG: dict[str, str] = {
     "tenure": "Tenure on survey",
@@ -212,6 +216,52 @@ VARIABLE_LABELS: dict[str, str] = {
     "same_employer": "Same job as last survey?",
     "couple": "Married/living with partner?",
     "spouse_working": "Spouse/partner currently working?",
+}
+
+VARIABLE_LABELS_SHORT: dict[str, str] = {
+    "financial_past_12m": "Finances vs. 12 months ago",
+    "financial_12m": "Finances 12 months from now",
+    "prob_unrate_up": "Prob. unemployment up, 12m",
+    "prob_irate_up": "Prob. interest rates up, 12m",
+    "prob_stocks_up": "Prob. stocks up, 12m",
+    "infl_1y": "Inflation rate, next 12m",
+    "infl_3y": "Inflation rate, 24–36m ahead",
+    "infl_5y": "Inflation rate, 48–60m ahead",
+    "infl_1y_bin_mean": "Expected infl. mean, next 12m",
+    "infl_1y_bin_var": "Exp. infl. variance, next 12m",
+    "infl_1y_bin_median": "Exp. infl. median, next 12m",
+    "infl_1y_bin_iqr": "Expected infl. IQR, next 12m",
+    "infl_1y_bin_prob_defl": "Deflation prob., next 12m",
+    "infl_3y_bin_mean": "Exp. infl. mean, 24–36m",
+    "infl_3y_bin_var": "Exp. infl. variance, 24–36m",
+    "infl_3y_bin_median": "Exp. infl. median, 24–36m",
+    "infl_3y_bin_iqr": "Exp. infl. IQR, 24–36m",
+    "infl_3y_bin_prob_defl": "Deflation prob., 24–36m ahead",
+    "infl_5y_bin_mean": "Exp. infl. mean, 48–60m",
+    "infl_5y_bin_var": "Exp. infl. variance, 48–60m",
+    "infl_5y_bin_median": "Exp. infl. median, 48–60m",
+    "infl_5y_bin_iqr": "Exp. infl. IQR, 48–60m",
+    "infl_5y_bin_prob_defl": "Deflation prob., 48–60m ahead",
+    "prob_lose_job": "Prob. job loss, next 12m",
+    "prob_leave_job": "Prob. leave job, next 12m",
+    "prob_accept_job_12m": "Prob. accept job, next 12m",
+    "prob_accept_job_3m": "Prob. accept job, next 3m",
+    "prob_search_job_12m": "Prob. job search, next 12m",
+    "prob_search_job_3m": "Prob. job search, next 3m",
+    "credit_cond_past_12m": "Credit conditions vs. 12m ago",
+    "prob_miss_paym_3m": "Prob. missed payment, next 3m",
+    "house_price_change_3y": "House-price change, 24–36m",
+    "govt_debt_change": "Change in government debt",
+    "num_lit_q1": "Half-price cost of a $300 sofa",
+    "num_lit_q2": "Value of $200 after 2yr at 10%",
+    "num_lit_q3": "Winners at 1% out of 1,000",
+    "num_lit_q5": "Disease cases at 10% of 1,000",
+    "num_lit_q6": "Infections at .0005 of 10,000",
+    "num_lit_q8": "Purchasing power at 1%/2%",
+    "take_fin_risk": "Willingness to take fin. risk",
+    "hh_inc_bin_rank": "ACS rank for HH income bin",
+    "Q47_rank": "ACS rank for HH income bin",
+    "spouse_working": "Spouse/partner working",
 }
 
 

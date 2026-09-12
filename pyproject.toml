@@ -16,9 +16,6 @@ override-dependencies = [
     "matplotlib>=3.11,<3.12",
 ]
 
-[tool.uv.sources]
-pydynopt = { path = "../pydynopt", editable = true }
-
 [tool.ruff]
 line-length = 88
 indent-width = 4
@@ -66,7 +63,6 @@ typeCheckingMode = "standard"
 pythonVersion = "3.14"
 extraPaths = [
     "src",
-    "../pydynopt/src",
 ]
 reportUnusedCallResult = false
 reportAssignmentType = false
@@ -76,7 +72,6 @@ reportExplicitAny = false
 [tool.ty.environment]
 extra-paths = [
     "src",
-    "../pydynopt/src",
 ]
 
 [dependency-groups]
@@ -84,11 +79,9 @@ dev = [
     "pandas-stubs>=3.0,<3.1",
     "pytest>=9.1.1",
     "pytest-xdist>=3.6.1",
-    "pydynopt",
 ]
 
 [tool.pytest.ini_options]
 pythonpath = [
     "src",
-    "../pydynopt/src",
 ]

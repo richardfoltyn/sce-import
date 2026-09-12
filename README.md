@@ -22,7 +22,9 @@
   ``--formats pickle,stata,excel,csv`` to write all formats. CSV exports round
   percentage and percentile fields to two decimal places; other formats retain
   full processed precision.
-- **Diagnostic Plotting**: Generates plots illustrating panel spell lengths, observation counts per survey wave, and longitudinal statistics (mean, median, IQR) for variables over waves.
+- **Diagnostic Plotting**: Generates plots illustrating panel spell lengths,
+  observation counts per survey wave, and weighted and unweighted longitudinal
+  statistics (mean, median, IQR) for variables over waves.
 
 ## Requirements
 
@@ -31,9 +33,6 @@
 - **External Dependencies**:
   - Standard scientific libraries: `pandas >=3.0`, `numpy >=2.5`, `matplotlib >=3.11`, `openpyxl >=3.1`
   - System utilities: `poppler-utils` (specifically `pdftotext`, required only for processing the PDF questionnaire)
-- **Development Dependencies**:
-  - `pydynopt` (located in a sibling directory `../pydynopt` in editable mode; required only for the diagnostic plotting script `src/main_plot_diag.py`)
-
 ## Usage
 
 All commands should be executed within the `uv` virtual environment.
