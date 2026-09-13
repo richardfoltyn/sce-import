@@ -32,7 +32,7 @@ from SCE.codings import (
     YES_NO_RECODE,
     BinaryRecode,
 )
-from SCE.constants import VARNAME_ID, VARNAME_WID
+from SCE.constants import VARNAME_ID, VARNAME_WEIGHT, VARNAME_WID
 from SCE.datatypes import NULLABLE_INT8_COLUMNS
 from SCE.pandas_helpers import merge_if_na, tile_const
 
@@ -971,7 +971,7 @@ def process_sce(
     df = df.set_index([VARNAME_ID, VARNAME_WID]).sort_index()
 
     # Common meta-variables are present in both outputs.
-    columns = ["tenure", "weight"]
+    columns = ["tenure", VARNAME_WEIGHT]
     df_full_common = df[columns].copy(deep=True)
     df_extract_common = df[columns].copy(deep=True)
 

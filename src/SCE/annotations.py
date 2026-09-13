@@ -7,6 +7,7 @@ Variable labels mappings for original and processed SCE survey variables.
 - VARIABLE_LABELS_FULL: Complete labels for the processed full output.
 - VALUE_LABELS: Categorical value labels for encoded response codes.
 - USD_VARIABLES: Processed variables whose values are denominated in US dollars.
+- PERCENT_VARIABLES: Processed variables expressed in percentage points.
 
 Author: Richard Foltyn
 """
@@ -16,6 +17,43 @@ from collections.abc import Iterable
 from SCE.enums import INCOME_CATEGORIES, Educ4Enum, EmplStatusEnum, WellBeingEnum
 
 USD_VARIABLES: frozenset[str] = frozenset({"num_lit_q1", "num_lit_q2"})
+PERCENT_VARIABLES: frozenset[str] = frozenset(
+    {
+        "prob_move_house",
+        "prob_unrate_up",
+        "prob_irate_up",
+        "prob_stocks_up",
+        "infl_1y",
+        "infl_1y_bin_mean",
+        "infl_1y_bin_median",
+        "infl_1y_bin_iqr",
+        "infl_1y_bin_prob_defl",
+        "infl_3y",
+        "infl_3y_bin_mean",
+        "infl_3y_bin_median",
+        "infl_3y_bin_iqr",
+        "infl_3y_bin_prob_defl",
+        "infl_5y",
+        "infl_5y_bin_mean",
+        "infl_5y_bin_median",
+        "infl_5y_bin_iqr",
+        "infl_5y_bin_prob_defl",
+        "prob_lose_job",
+        "prob_leave_job",
+        "prob_accept_job_12m",
+        "prob_accept_job_3m",
+        "prob_search_job_12m",
+        "prob_search_job_3m",
+        "earnings_change",
+        "hh_inc_change",
+        "hh_spending_change",
+        "taxes_change",
+        "prob_miss_paym_3m",
+        "house_price_change",
+        "house_price_change_3y",
+        "govt_debt_change",
+    }
+)
 
 VARIABLE_LABELS_ORIG: dict[str, str] = {
     "tenure": "Tenure on survey",
