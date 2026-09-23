@@ -4,7 +4,7 @@ Module to import and process SCE survey data.
 - Processes raw survey variables and maps them to clean representations.
 - Flips signs for variables where decreases were coded as positive.
 - Computes correct data types and formats demographic indicators.
-- Merges external family income ranks based on ACS data.
+- Merges external person-weighted household-income ranks based on ACS data.
 
 Author: Richard Foltyn
 """
@@ -879,7 +879,7 @@ def _process_household_background(
     if "QRA2" in df.columns:
         df_full["QRA2"] = tile_const(df["QRA2"], VARNAME_ID, "Int8")
 
-    # Q47: Total pre-tax family income during the past 12 months
+    # Q47: Combined pre-tax household income during the past 12 months
     df_full["Q47"] = df["Q47"]
 
     # --- Questions to repeat respondents ---
@@ -941,7 +941,7 @@ def _process_household_background(
             unknown_columns=SPOUSE_OTHER_COLUMNS,
         )
 
-    # D6: Current total pre-tax family income (11 income bins)
+    # D6: Current combined pre-tax household income (11 income bins)
     df_full["Q47"] = merge_if_na(df_full["Q47"], df["D6"])
     df_extract["hh_inc_bin"] = df_full["Q47"]
 

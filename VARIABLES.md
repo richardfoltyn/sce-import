@@ -235,7 +235,7 @@ Table notes:
 | `couple` | Currently married or living with a partner | `Q38` / `DQ38` | `0` = no; `1` = yes |
 | `spouse_working` | Spouse/partner works full-time, part-time, or is self-employed | `HH2_1`–`HH2_11` / `DHH2_1`–`DHH2_11` | `0` = no; `1` = yes |
 | `hh_inc_bin` | Combined pre-tax household income during the past 12 months | `Q47` / `D6` | `1` = less than \$10,000; `2` = \$10,000–\$19,999; `3` = \$20,000–\$29,999; `4` = \$30,000–\$39,999; `5` = \$40,000–\$49,999; `6` = \$50,000–\$59,999; `7` = \$60,000–\$74,999; `8` = \$75,000–\$99,999; `9` = \$100,000–\$149,999; `10` = \$150,000–\$199,999; `11` = \$200,000 or more |
-| `hh_inc_bin_rank` | Person-weighted median ACS family-income rank for the income bin and reference year, on 0–1 | `Q47` / `D6` + `survey_date` + `year`, `ibin`, and `rank` in [`data/IPUMS_ftotinc_rank_by_year_sce_bins.csv`](data/IPUMS_ftotinc_rank_by_year_sce_bins.csv) | — |
+| `hh_inc_bin_rank` | Person-weighted median ACS household-income rank for the income bin and reference year, on 0–1 | `Q47` / `D6` + `survey_date` + `year`, `ibin`, and `rank` in [`data/IPUMS_income_rank_by_year_sce_bins.csv`](data/IPUMS_income_rank_by_year_sce_bins.csv) | — |
 
 Table notes:
 
@@ -247,7 +247,11 @@ Table notes:
 - `spouse_working`: Combines initial `HH2` responses with repeat-interview `DHH2`
   updates. An "Other"-only response maps to `NA`, known nonworking statuses map to
   0, and the source questions are available from June 2014.
-- `hh_inc_bin_rank`: Uses the previous calendar year for January–June interviews
-  and the current calendar year for July–December interviews. When that ACS mapping
-  is unavailable, it carries forward the most recent prior mapping separately
-  within each income bin.
+- `hh_inc_bin_rank`: Uses ACS `HHINCOME`, which includes income from unrelated
+  household members that `FTOTINC` excludes. The reference distribution contains
+  person records aged 18 or older and uses `PERWT`, so the result is a person's
+  rank in the household-income distribution rather than an equally weighted
+  household rank. It uses the previous calendar year for January–June interviews
+  and the current calendar year for July–December interviews. When that ACS
+  mapping is unavailable, it carries forward the most recent prior mapping
+  separately within each income bin.

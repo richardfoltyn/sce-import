@@ -3,7 +3,7 @@ Main module to import and process SCE microdata.
 
 - Concatenates multiple raw Excel datasets.
 - Processes demographic and question variables.
-- Merges external family income ranks.
+- Merges external person-weighted household-income ranks.
 - Exports the final processed datasets to Pickle, Stata, Excel, and CSV.
 
 Author: Richard Foltyn
@@ -299,7 +299,7 @@ def process_data(
     df_orig
         Original SCE data, concatenated into single DataFrame.
     df_ranks
-        Mapping of family income in USD to income ranks.
+        Mapping of household-income bins to person-weighted income ranks.
     final_date
         If not None, restrict the sample to dates before and including this date.
         Time components are ignored.
@@ -383,7 +383,7 @@ def main(econf: EnvConfig) -> None:
 
     # --- Load income rank data from ACS ---
 
-    fn = econf.repodir / "data" / "IPUMS_ftotinc_rank_by_year_sce_bins.csv"
+    fn = econf.repodir / "data" / "IPUMS_income_rank_by_year_sce_bins.csv"
     df_ranks = pd.read_csv(fn)
 
     # --- Process SCE data ---

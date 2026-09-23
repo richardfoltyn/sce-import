@@ -236,7 +236,7 @@ class Educ4Enum(IntEnum):
         return mapping[self]
 
 
-# Total pre-tax family income categories
+# Combined pre-tax household-income categories
 INCOME_CATEGORIES: dict[int, str] = {
     1: "Less than $10,000",
     2: "$10,000 to $19,999",

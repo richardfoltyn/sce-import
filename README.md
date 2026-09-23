@@ -1,6 +1,6 @@
 # sce-import
 
-`sce-import` is a Python-based utility to import, clean, structure, and export the Survey of Consumer Expectations (SCE) microdata from the Federal Reserve Bank of New York (FRBNY). It concatenates raw Excel datasets, maps variable labels, attaches variable and value labels to Stata and Pickle outputs, performs sign corrections, and merges external family income ranks computed from American Community Survey (ACS) data.
+`sce-import` is a Python-based utility to import, clean, structure, and export the Survey of Consumer Expectations (SCE) microdata from the Federal Reserve Bank of New York (FRBNY). It concatenates raw Excel datasets, maps variable labels, attaches variable and value labels to Stata and Pickle outputs, performs sign corrections, and merges external person-weighted household-income ranks computed from American Community Survey (ACS) data.
 
 ## Author
 
@@ -14,7 +14,7 @@
   outputs, plus applicable categorical value labels. Pickle stores them in
   `DataFrame.attrs`, Stata receives native labels, and an incomplete variable
   label registry stops the export.
-- **ACS Income Rank Integration**: Merges external household total income ranks computed from IPUMS ACS data.
+- **ACS Income Rank Integration**: Merges person-weighted household-income ranks computed from IPUMS ACS `HHINCOME` and `PERWT`. Unlike family income (`FTOTINC`), `HHINCOME` includes income from household members unrelated to the household head.
 - **Multiple Export Formats**: Exports processed full datasets and reduced extracts
   to the formats selected via ``--formats``. Supported formats are
   Zstandard-compressed Pickle (``.pkl.zst``), Stata (``.dta``), Excel (``.xlsx``),

@@ -44,6 +44,12 @@
 
 - The raw data is provided as Excel files in `$HOME/data/SCE`: `FRBNY-SCE-Public-Microdata-Complete-13-16.xlsx`, `FRBNY-SCE-Public-Microdata-Complete-17-19.xlsx`, `frbny-sce-public-microdata-20-24.xlsx`, and `frbny-sce-public-microdata-latest.xlsx`.
 
+## IPUMS ACS data
+
+- The IPUMS ACS income extract is located at
+  `$HOME/data/IPUMS/ACS/income/data.dta`.
+- Its accompanying codebooks and DDI metadata are in the same directory.
+
 ## Questionnaire
 
 - The processed, layout-preserved, and cleaned text of the Survey of Consumer Expectations (SCE) questionnaire is located at [`QUESTIONNAIRE.txt`](QUESTIONNAIRE.txt).

@@ -4,7 +4,7 @@ set -euo pipefail
 
 # Default directories (can be overridden by environment variables or CLI options)
 SCE_DIR="${SCE_DIR:-$HOME/data/SCE}"
-ACS_DIR="${ACS_DIR:-$HOME/data/IPUMS/ACS}"
+ACS_DIR="${ACS_DIR:-${HOME}/data/IPUMS/ACS/income}"
 MANIFEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 show_help() {
